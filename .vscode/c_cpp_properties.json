@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "defines": [
+                "_POSIX_C_SOURCE=200809L"
+            ],
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++14"
+        }
+    ],
+    "version": 4
+}
