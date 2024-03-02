@@ -13,11 +13,13 @@
 
 #define BUFFER_SIZE 200
 
-void ENTRY (int fd,int new_id,char*new_ip,int new_port)
+ssize_t ENTRY (int fd,int new_id,char*new_ip,int new_port)
 {
     ssize_t n;
     char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "ENTRY %d %s %d\n",new_id,new_ip,new_port);
     n=send_tcp_message(fd,buffer,sizeof(buffer));   
+
+    return n;
 }

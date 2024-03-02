@@ -3,8 +3,17 @@
 
 typedef struct NODE_INFO
 {
-    int id, succid, succTCP,ring;
-    char ip[16], succIP[16];
+    int id, ring, port;
+    char ip[16];
+
+    int succ_id, succ_port; /*Successor data*/
+    char succ_ip[16];
+
+    int s_succ_id, s_succ_port; /*Second Successor data*/
+    char s_succ_ip[16];
+
+    int pred_id, pred_port; /*Predecessor data*/
+    char pred_ip[16];
 
     struct addrinfo *udp_server_info;
 

@@ -1,7 +1,6 @@
-void ENTRY (int fd, int new_id,char*new_ip,int new_port);
+#ifndef RING_MESSAGE_H
+#define RING_MESSAGE_H
 
-void SUCC (int succ_id, char* succ_ip, int succ_port);
+ssize_t ENTRY (int fd,int new_id,char*new_ip,int new_port);
 
-void PRED (int id);
-
-void CHORD (int id);
+#endif

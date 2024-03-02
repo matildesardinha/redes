@@ -82,27 +82,32 @@ ssize_t send_tcp_message(int fd, char*message, int message_size)
     return bytes_written;
 }
 
-char* receive_tcp_message(int fd, ssize_t n_left)
+ssize_t receive_tcp_message(int fd, char* buffer, int buffer_size)
 {
-    ssize_t n_read=0;
-    char * message_received, buffer[BUFFER];
-    
-    message_received= buffer;
-    while (n_left>0)
-    {
-        n_read=read(fd,message_received,n_left);
+    ssize_t bytes_read=0;
+    char* end_of_message=NULL;
 
-        if(n_read==-1)
+  
+    while (end_of_message == NULL)
+    {
+        bytes_read +=read(fd,buffer + bytes_read,buffer_size-bytes_read);
+
+        if(bytes_read==-1 || bytes_read==0)
         {
             perror("error in receive_tcp_message read");
             exit(1);
         }
 
-        n_left-=n_read;
-        message_received += n_read;     /*NÃO ESQUECER DE FECHAR O FD DEPOIS*/
+        end_of_message= strrchr (buffer, '\n');
+        if(end_of_message !=NULL)
+        {
+            *end_of_message= '\0'; /*not sure porquê **/
+        }
+
+            /*NÃO ESQUECER DE FECHAR O FD DEPOIS*/
     }
 
-    return message_received;
+    return bytes_read;
 }
 
 
