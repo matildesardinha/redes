@@ -1,7 +1,8 @@
+void process_comands(node_information* node_info, char *buffer);
 /*
 
 */
-void djoin(node_information * node_info,int succ_id,char* succ_ip, int succ_port);
+void djoin(node_information * node_info,int id, int succ_id,char* succ_ip, int succ_port);
 
 /*
 

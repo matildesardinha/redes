@@ -14,10 +14,17 @@ typedef struct NODE_INFO
 
     int pred_id; /*Predecessor data*/
 
+    char udp_ip[16]; /*Node server info*/
+    int udp_port; 
+
     struct addrinfo *udp_server_info;
+
+    int tcp_server_fd; /*TCP server socket*/
 
     /*faltam ponteiros para as tabelas de encaminhamento*/
 
 }node_information;
 
 #endif
+
+node_information* set_up_node(int id,int tcp_port,char*ip,char*reg_ip,int reg_UDP);

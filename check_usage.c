@@ -20,7 +20,7 @@ int check_ipv4(char*ip)
     void *dst;
     if(inet_pton(AF_INET, ip,dst)==0)
     {
-        printf("%s is not a valid ipv4 address",ip);
+        printf("%s is not a valid ipv4 address\n",ip);
         return 0;
     }
     return 1;

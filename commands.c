@@ -17,14 +17,55 @@
 
 #define NODES_BUFFER 3000
 
-void djoin(node_information * node_info,int succ_id,char* succ_ip, int succ_port)
+#define MAX_ARG 4
+
+void process_comands(node_information* node_info, char *buffer)
+{
+    char *command, *arguments;
+    int num_args;
+     
+    command = strtok(buffer, " ");
+    num_args = 0;
+
+    while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
+        num_args++;
+    }
+
+    /*No command introduced*/
+    if (command == NULL) {
+        printf("No command inserted.\n"); /*não sei se isto faz muito sentido*/
+        return;
+    }
+
+    if((strcmp(command,"join") || strcmp(command,"j")) && num_args==2)
+    {
+        join(node_info,atoi(arguments[0]),atoi(arguments[1]));
+    }
+    
+    else if ((strcmp(command,"direct join") || strcmp(command,"dj")) && num_args==4)
+    {
+        djoin(node_info,atoi(arguments[0]),atoi(arguments[1]),arguments[2],atoi(arguments[3]));
+    }
+    else if ((strcmp(command,"show topology") || strcmp(command,"st")) && num_args==0)
+    {
+        show_topology(node_info);
+    }
+
+    else
+    {
+        printf("Invalid command\n");
+    }
+}
+
+void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int succ_port)
 {
     int fd;
 
     /*Check arguments*/
 
-    /*Update successor info*/
-    node_info->id=succ_id;
+    /*Update info*/
+    node_info->id=id;
+    node_info->succ_id=succ_id;
     strcpy(node_info->succ_ip,succ_ip);
     node_info->succ_port=succ_port;
 
@@ -120,7 +161,7 @@ void join(node_information *node_info,int ring, int id)
 
         /*Direct Join*/
 
-        djoin(node_info,selected_id,selected_ip,selected_port);
+        djoin(node_info,id,selected_id,selected_ip,selected_port);
 
         /*Send REG to the node server*/
         
