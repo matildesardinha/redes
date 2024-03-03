@@ -98,6 +98,7 @@ int main (int argc, char **argv)
         /*Check user input*/
         if (FD_ISSET(STDIN_FILENO, &tmpfds)) 
         {
+            printf("leu input do utilizador\n");
             fgets(buffer, BUFFER_SIZE, stdin);
             len = strlen(buffer);
 

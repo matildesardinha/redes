@@ -66,6 +66,8 @@ int REG (node_information*node_info)
 
     sprintf(message, "REG %d %d %s %d\n", node_info->ring, node_info->id,node_info->ip,node_info->port);
     n = message_serverUDP(node_info->udp_server_info,message,(size_t)sizeof(message),buffer,sizeof(buffer));
+
+    printf("Resposta ao REG : %s\n Tamanho do envio: %ld\n", buffer,sizeof(message));
     
     if (n == 0 || strcmp(buffer, "OKREG") != 0)
     {

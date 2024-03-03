@@ -135,38 +135,42 @@ void join(node_information *node_info,int ring, int id)
     /*Case: the ring is empty*/
     else if(num_nodes==1)
     {
+        printf("Ring is empty\n");
         REG (node_info);
+        printf("REG done\n");
     }
 
 
-    /*Selects another ID for the node if the current one is being used*/
-    if(ring_ids[id]==1)
-    {
-        i=0;
-        while(ring_ids[i]==1)
-        {
-            i++;
-        }
-        node_info->id=i;
-        printf("join: the select ID already exists. Assigned ID: %02d\n",i);
-    }
-
-
+  
     /*Case: node will conect to another node*/
     else
     {
+        printf("Node will connect to another node\n");
+        /*Selects another ID for the node if the current one is being used*/
+        if(ring_ids[id]==1)
+        {
+            i=0;
+            while(ring_ids[i]==1)
+            {
+                i++;
+            }
+            node_info->id=i;
+            printf("join: the select ID already exists. Assigned ID: %02d\n",i);
+        }
+
         /*Select node to connect to*/
         selected_node=(rand()%(num_nodes-1))+1;
         sscanf(nodeslist[selected_node],"%d %s %d", &selected_id,selected_ip,&selected_port);
 
-
         /*Direct Join*/
 
         djoin(node_info,id,selected_id,selected_ip,selected_port);
+        printf("djoin done\n");
 
         /*Send REG to the node server*/
         
-        REG (node_info);        
+        REG (node_info);       
+        printf ("REG done\n"); 
     }
 
     return;

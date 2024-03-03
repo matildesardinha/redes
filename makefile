@@ -12,6 +12,9 @@ PROGS=cor
 
 all: $(PROGS)
 
+test: udp_functions.o main_test.c
+	$(CC) $(CFLAGS) udp_functions.o main_test.c -o test
+
 cor: check_usage.o udp_functions.o tcp_functions.o data_structures.o ring_message.o  commands.o  main.c
 	$(CC) $(CFLAGS) check_usage.o udp_functions.o tcp_functions.o data_structures.o ring_message.o  commands.o  main.c -o cor
 

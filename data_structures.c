@@ -40,5 +40,17 @@ node_information* set_up_node(int id,int tcp_port,char*ip,char*reg_ip,int reg_UD
     node_info->succ_fd=-1;
     node_info->pred_fd=-1;
 
+    node_info->s_succ_id=-1;
+    node_info->s_succ_port=-1;
+    strcpy(node_info->s_succ_ip, "empty");
+
+    node_info->succ_id=-1;
+    node_info->succ_port=-1;
+    strcpy(node_info->succ_ip, "empty");
+
+
+    node_info->pred_id=-1;
+
+
     return node_info;
 }
