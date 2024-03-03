@@ -26,6 +26,7 @@ typedef struct NODE_INFO
 
 }node_information;
 
-#endif
 
 node_information* set_up_node(int id,int tcp_port,char*ip,char*reg_ip,int reg_UDP);
+
+#endif

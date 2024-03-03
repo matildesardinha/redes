@@ -1,3 +1,6 @@
+#ifndef TCP_FUNCTIONS_H
+#define TCP_FUNCTIONS_H
+
 /*
     Description: gets the node server info
 
@@ -24,3 +27,5 @@ struct addrinfo* UDPserver_info(struct addrinfo *udp_server_info, char *ip, char
     Returns: 1 if the information is received, 0 if not
 */
 int message_serverUDP (struct addrinfo *res,char *message, size_t message_size,char*buffer,int buffer_size);
+
+#endif
