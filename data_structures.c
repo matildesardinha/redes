@@ -16,8 +16,8 @@
 node_information* set_up_node(int id,int tcp_port,char*ip,char*reg_ip,int reg_UDP)
 {
     node_information* node_info;
-    struct addrinfo * server_info;
-    char *str;
+    struct addrinfo * server_info=NULL;
+    char str[6];
 
     node_info=(node_information*)malloc(sizeof(node_information));
     if(node_info==NULL)

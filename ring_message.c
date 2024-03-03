@@ -10,19 +10,20 @@
 #include "ring_message.h"
 #include "tcp_functions.h"
 #include "udp_functions.h"
-#include "data_structures.h"
 
 
 #define BUFFER_SIZE 200
 #define MAX_ARG 3
 
+
 void ENTRY (int fd,int new_id,char*new_ip,int new_port)
 {
-    ssize_t n;
+    /*ssize_t n;*/
     char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "ENTRY %d %s %d\n",new_id,new_ip,new_port);
-    n=send_tcp_message(fd,buffer,sizeof(buffer));   
+    /*n=*/
+    send_tcp_message(fd,buffer,sizeof(buffer));   
 
     /*Checkar se a totalidade da mensagem foi enviada*/
 
@@ -31,11 +32,12 @@ void ENTRY (int fd,int new_id,char*new_ip,int new_port)
 
 void SUCC (int fd, int succ_id, char*succ_ip, int succ_port)
 {
-    ssize_t n;
+    /*ssize_t n;*/
     char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "SUCC %d %s %d\n",succ_id,succ_ip,succ_port);
-    n=send_tcp_message(fd,buffer,sizeof(buffer));   
+    /*n=*/
+    send_tcp_message(fd,buffer,sizeof(buffer));   
 
     /*Checkar se a totalidade da mensagem foi enviada*/
 
@@ -44,11 +46,12 @@ void SUCC (int fd, int succ_id, char*succ_ip, int succ_port)
 
 void PRED (int fd, node_information *node_info)
 {
-    ssize_t n;
+    /*ssize_t n;*/
     char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "PRED %d\n",node_info->id);
-    n=send_tcp_message(fd,buffer,sizeof(buffer));   
+    /*n=*/
+    send_tcp_message(fd,buffer,sizeof(buffer));   
 
     /*Checkar se a totalidade da mensagem foi enviada*/
 
@@ -75,7 +78,7 @@ int REG (node_information*node_info)
 
 void process_tcp_message(node_information*node_info, char*message, int fd)
 {
-    char *command, *arguments;
+    char *command, *arguments[MAX_ARG];
     char buffer[BUFFER_SIZE];
     int num_args;
      
@@ -132,7 +135,7 @@ void process_tcp_message(node_information*node_info, char*message, int fd)
 
 int process_new_connection(node_information*node_info, char*message,int fd)
 {
-    char *command, *arguments;
+    char *command, *arguments[MAX_ARG];
     char buffer[BUFFER_SIZE];
     int num_args;
      
@@ -145,7 +148,7 @@ int process_new_connection(node_information*node_info, char*message,int fd)
 
     if(strcmp(command,"ENTRY") && num_args==3)
     {
-        SUCC(fd,node_info->succ_ip,node_info->succ_ip,node_info->succ_port);
+        SUCC(fd,node_info->succ_id,node_info->succ_ip,node_info->succ_port);
         ENTRY(node_info->pred_fd,atoi(arguments[0]),arguments[1],atoi(arguments[2]));
 
         /*Update pred*/

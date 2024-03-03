@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "commands.h"
-#include "data_structures.h"
 #include "udp_functions.h"
 #include "tcp_functions.h"
 #include "ring_message.h"
@@ -19,9 +18,9 @@
 
 #define MAX_ARG 4
 
-void process_comands(node_information* node_info, char *buffer)
+void process_command(node_information* node_info, char *buffer)
 {
-    char *command, *arguments;
+    char *command, *arguments[MAX_ARG];
     int num_args;
      
     command = strtok(buffer, " ");
@@ -55,6 +54,7 @@ void process_comands(node_information* node_info, char *buffer)
     {
         printf("Invalid command\n");
     }
+    return;
 }
 
 void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int succ_port)
@@ -78,6 +78,7 @@ void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int su
 
     close(fd);
 
+    return;
 }
 
 void join(node_information *node_info,int ring, int id)
@@ -156,7 +157,7 @@ void join(node_information *node_info,int ring, int id)
     {
         /*Select node to connect to*/
         selected_node=(rand()%(num_nodes-1))+1;
-        sscanf(nodeslist[selected_node],"%d %s %d", selected_id,selected_ip,selected_port);
+        sscanf(nodeslist[selected_node],"%d %s %d", &selected_id,selected_ip,&selected_port);
 
 
         /*Direct Join*/

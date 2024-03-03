@@ -17,8 +17,8 @@ int check_port (int port)
 
 int check_ipv4(char*ip)
 {
-    void *dst;
-    if(inet_pton(AF_INET, ip,dst)==0)
+    struct in_addr dst;
+    if(inet_pton(AF_INET, ip,&dst)==0)
     {
         printf("%s is not a valid ipv4 address\n",ip);
         return 0;

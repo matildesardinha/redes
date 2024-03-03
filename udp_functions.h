@@ -1,5 +1,5 @@
-#ifndef TCP_FUNCTIONS_H
-#define TCP_FUNCTIONS_H
+#ifndef UDP_FUNCTIONS_H
+#define UDP_FUNCTIONS_H
 
 /*
     Description: gets the node server info

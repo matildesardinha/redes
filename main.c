@@ -12,12 +12,14 @@
 #include "check_usage.h"
 #include "data_structures.h"
 #include "tcp_functions.h"
+#include "ring_message.h"
+#include "udp_functions.h"
+#include "commands.h"
 
 #define BUFFER_SIZE 128
 
 int main (int argc, char **argv)
 {
-
     int regUDP= 59000;
     char regIP[16]= "193.136.138.142";
     node_information * node_info;

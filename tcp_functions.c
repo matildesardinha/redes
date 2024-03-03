@@ -17,7 +17,6 @@ int tcp_server(char *ip, int port)
 {
     int fd, errcode;
     ssize_t n;
-    socklen_t addrlen;
     struct addrinfo hints, *res;
     char port_s[7];
 

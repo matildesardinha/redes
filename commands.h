@@ -1,7 +1,9 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-void process_comands(node_information* node_info, char *buffer);
+#include "data_structures.h"
+
+void process_command(node_information* node_info, char *buffer);
 /*
 
 */
