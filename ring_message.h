@@ -8,4 +8,8 @@ void SUCC (int fd, int succ_id, char*succ_ip, int succ_port);
 void PRED (int fd, node_information *node_info);
 
 int REG (node_information*node_info);
+
+void process_tcp_message(node_information*node_info, char*message, int fd);
+
+int process_new_connection(node_information*node_info, char*message,int fd);
 #endif

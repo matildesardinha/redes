@@ -62,7 +62,9 @@ int main (int argc, char **argv)
     /*Select call*/
 
     fd_set readfds;
-    int maxfd, len=0, newfd;
+    int maxfd, len=0, newfd, receive,check_connection=0;
+    struct sockaddr client_addr;
+    socklen_t client_len= sizeof(client_len);
 
     FD_ZERO (&readfds);
     FD_SET (STDIN_FILENO,&readfds);
@@ -110,15 +112,68 @@ int main (int argc, char **argv)
 
         else if(FD_ISSET(node_info->tcp_server_fd,&tmpfds))
         {
+            newfd=accept(node_info->tcp_server_fd,&client_addr,&client_len);
+            if(newfd<0)
+            {
+                perror("Error in accept\n");
+                exit(1);
+            }
+
+            receive=receive_tcp_message(newfd,buffer,BUFFER_SIZE);
+            if(receive<0)
+            {
+                printf("Could not receive tcp message\n");
+            }
+            else
+            {
+                check_connection=process_new_connection(node_info,buffer,newfd);
+
+                if(check_connection==1)
+                {
+                    FD_SET(newfd,&readfds);
+
+                    if(newfd > maxfd)
+                    {
+                        maxfd=newfd;
+                    }
+                }
+            }
             
         }
 
         /*Check for node messages*/
         else
         {
+            if(node_info->succ_fd !=-1)
+            {
+                if(FD_ISSET(node_info->succ_fd,&tmpfds))
+                {
+                    receive=receive_tcp_message(node_info->succ_fd,buffer,BUFFER_SIZE);
+                    if(receive<0)
+                    {
+                        printf("Could not receive tcp message\n");
+                    }
+                    else
+                    {
+                        process_tcp_message(node_info,buffer,node_info->succ_fd);
+                    }
+                }
+            }
+
+            else if(node_info->pred_fd != -1)
+            {
+                  receive=receive_tcp_message(node_info->pred_fd,buffer,BUFFER_SIZE);
+                    if(receive<0)
+                    {
+                        printf("Could not receive tcp message\n");
+                    }
+                    else
+                    {
+                        process_tcp_message(node_info,buffer,node_info->pred_fd);
+                    }
+            }
 
         }
-
 
     }
 

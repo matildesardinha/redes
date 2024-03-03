@@ -37,5 +37,8 @@ node_information* set_up_node(int id,int tcp_port,char*ip,char*reg_ip,int reg_UD
 
     node_info->udp_server_info=server_info;
 
+    node_info->succ_fd=-1;
+    node_info->pred_fd=-1;
+
     return node_info;
 }

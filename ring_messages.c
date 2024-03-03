@@ -14,6 +14,7 @@
 
 
 #define BUFFER_SIZE 200
+#define MAX_ARG 3
 
 void ENTRY (int fd,int new_id,char*new_ip,int new_port)
 {
@@ -70,4 +71,93 @@ int REG (node_information*node_info)
     }
 
     return 1;
+}
+
+void process_tcp_message(node_information*node_info, char*message, int fd)
+{
+    char *command, *arguments;
+    char buffer[BUFFER_SIZE];
+    int num_args;
+     
+    command = strtok(buffer, " ");
+    num_args = 0;
+
+    while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
+        num_args++;
+    }
+
+    if(strcmp(command,"ENTRY") && num_args==3)
+    {
+        /*1st successor becomes 2nd successor
+        Updates 2nd successor info*/
+        node_info->s_succ_id = node_info->succ_id;
+        strcpy(node_info->s_succ_ip,node_info->succ_ip);
+        node_info->s_succ_port = node_info->succ_port;
+
+        /*Updates 1st successor info*/
+        node_info->succ_id = atoi(arguments[0]);
+        strcpy(node_info->succ_ip,arguments[1]);
+        node_info->succ_port = atoi(arguments[2]);
+        node_info->succ_fd=fd;
+
+        /*Sends SUCC to predecessor*/
+        SUCC(node_info->pred_fd,node_info->succ_id,node_info->succ_ip,node_info->succ_port);
+
+        /*Sends PRED to 1st successor*/
+        PRED(node_info->succ_fd,node_info);
+    }
+    
+    else if (strcmp(command,"SUCC") && num_args==3)
+    {
+        /*Updates 2nd successor*/
+        node_info->s_succ_id = atoi(arguments[0]);
+        strcpy(node_info->s_succ_ip,arguments[1]);
+        node_info->s_succ_port = atoi(arguments[2]);
+    }
+
+    else if (strcmp(command,"PRED") && num_args==1)
+    {
+        /*Updates predecessor*/
+        node_info->pred_id=atoi(arguments[0]);
+        node_info->pred_fd=fd;
+    }
+
+    else
+    {
+        printf("Invalid ring message\n");
+    }
+    
+    return;
+}
+
+int process_new_connection(node_information*node_info, char*message,int fd)
+{
+    char *command, *arguments;
+    char buffer[BUFFER_SIZE];
+    int num_args;
+     
+    command = strtok(buffer, " ");
+    num_args = 0;
+
+    while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
+        num_args++;
+    }
+
+    if(strcmp(command,"ENTRY") && num_args==3)
+    {
+        SUCC(fd,node_info->succ_ip,node_info->succ_ip,node_info->succ_port);
+        ENTRY(node_info->pred_fd,atoi(arguments[0]),arguments[1],atoi(arguments[2]));
+
+        /*Update pred*/
+        node_info->pred_id=atoi(arguments[0]);
+        node_info->pred_fd=fd;
+
+        return 1;
+    }
+    else
+    {
+        printf("Invalid ENTRY\n");
+        return 0; 
+    }
+    
 }
