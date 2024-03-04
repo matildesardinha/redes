@@ -14,7 +14,7 @@
 
 #define BUFFER 200
 
-#define NODES_BUFFER 3000
+#define NODES_BUFFER 300
 
 #define MAX_ARG 4
 
@@ -26,7 +26,7 @@ void process_command(node_information* node_info, char *buffer)
     command = strtok(buffer, " ");
     num_args = 0;
 
-    while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
+    while (num_args <= MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
         num_args++;
     }
 
@@ -71,12 +71,12 @@ void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int su
 
 
     /*Client connection*/
-    fd = tcp_client(succ_ip, succ_port);
+    fd = tcp_client (succ_ip, succ_port);
+
+    node_info->succ_fd=fd;
 
     /*Send entry message to the successor*/
     ENTRY(fd,node_info->id,node_info->ip,node_info->port);
-
-    close(fd);
 
     return;
 }
@@ -161,6 +161,8 @@ void join(node_information *node_info,int ring, int id)
         /*Select node to connect to*/
         selected_node=(rand()%(num_nodes-1))+1;
         sscanf(nodeslist[selected_node],"%d %s %d", &selected_id,selected_ip,&selected_port);
+
+        printf("Selected node: %d %s %d",selected_id,selected_ip,selected_port);
 
         /*Direct Join*/
 

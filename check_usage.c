@@ -7,7 +7,7 @@
 
 int check_port (int port)
 {
-    if (port<49152 || port>65535)
+    if (port<40000 || port>65535)
     {
         printf("%d is not a valid port number\n",port);
         return 0;

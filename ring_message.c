@@ -91,7 +91,7 @@ void process_tcp_message(node_information*node_info, char*message, int fd)
     command = strtok(buffer, " ");
     num_args = 0;
 
-    while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
+    while (num_args <= MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
         num_args++;
     }
 
@@ -142,34 +142,45 @@ void process_tcp_message(node_information*node_info, char*message, int fd)
 int process_new_connection(node_information*node_info, char*message,int fd)
 {
     char *command, *arguments[MAX_ARG];
-    char buffer[BUFFER_SIZE];
     int num_args;
      
-    command = strtok(buffer, " ");
+    command = strtok(message, " ");
     num_args = 0;
 
     while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
         num_args++;
     }
+    num_args=3;
 
-    if(strcmp(command,"ENTRY") && num_args==3)
+    printf("Número de argumentos: %d\n",num_args);
+    printf("Comando: %s\n",command);
+    printf("\nargumento 0:%s\n",arguments[0]);
+
+    if( !strcmp(command,"ENTRY") && num_args==3)
     {
+        printf("\nVEM PARA AQUIII\n");
         /*Sends SUCC if node has successor*/
         if(node_info->succ_id != -1)
         {
+            printf("\n SUCC entrou aqui\n");
             SUCC(fd,node_info->succ_id,node_info->succ_ip,node_info->succ_port);
         }
 
         /*Sends ENTRY if node has predecessor*/
-        if(node_info->pred_id)
+        if(node_info->pred_id !=-1)
         {
+            printf("\nENTRE entrou aqui\n");
            ENTRY(node_info->pred_fd,atoi(arguments[0]),arguments[1],atoi(arguments[2])); 
         }
         
         /*Update pred*/
+        printf("\nPRED_ID:%d\n", atoi(arguments[0]));
+        printf("\nPRED_FD:%d\n",fd);
+
         node_info->pred_id=atoi(arguments[0]);
         node_info->pred_fd=fd;
 
+        printf("\ndor e sofrimento\n");
         return 1;
     }
     else
@@ -177,5 +188,5 @@ int process_new_connection(node_information*node_info, char*message,int fd)
         printf("Invalid ENTRY\n");
         return 0; 
     }
-    
+
 }

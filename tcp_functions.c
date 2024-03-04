@@ -63,18 +63,17 @@ ssize_t send_tcp_message(int fd, char*message, int message_size)
 {
     ssize_t bytes_written=0;
     
-    while(message_size>0)
+    while(bytes_written < message_size)
     {
-        bytes_written = write(fd,message ,message_size); 
+        bytes_written += write(fd,message +bytes_written ,message_size-bytes_written); 
         if(bytes_written<=0)
         {
             perror("error in send_tcp_message write\n");
             exit(1);
         }
-        message_size-=bytes_written;
-        message += bytes_written;
-
     }
+
+    printf ("\n Mensagem enviada: %s | bytes: %ld",message,bytes_written);
 
     return bytes_written;
 }
@@ -98,10 +97,10 @@ ssize_t receive_tcp_message(int fd, char* buffer, int buffer_size)
         end_of_message= strrchr (buffer, '\n');
         if(end_of_message !=NULL)
         {
-            *end_of_message= '\0'; /*not sure porquê **/
+            *end_of_message= '\0'; 
         }
 
-            /*NÃO ESQUECER DE FECHAR O FD DEPOIS*/
+         printf("\nMESSAGE RECEIVED: %s  |  Bytes: %ld\n", buffer, bytes_read);    
     }
 
     return bytes_read;

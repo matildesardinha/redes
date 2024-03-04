@@ -16,7 +16,7 @@
 #include "udp_functions.h"
 #include "commands.h"
 
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 200
 
 int main (int argc, char **argv)
 {
@@ -25,6 +25,8 @@ int main (int argc, char **argv)
     node_information * node_info;
 
     char buffer [BUFFER_SIZE];
+    memset(buffer,0,BUFFER_SIZE);
+
     
     /*Check incorrect argument number*/
     if(argc!=3 && argc!=5)
@@ -130,12 +132,17 @@ int main (int argc, char **argv)
             }
             else
             {
-                check_connection=process_new_connection(node_info,buffer,newfd);
+                printf("\nO que está no buffer antes de processar a conecção: %s\n", buffer);
+
+                check_connection = process_new_connection(node_info,buffer,newfd);
+
+                printf("\n e aqui chega?\n");
 
                 if(check_connection==1)
                 {
+                    printf("\nantes do fd_set\n");
                     FD_SET(newfd,&readfds);
-
+                    printf("\ndepois do fd_set\n");
                     if(newfd > maxfd)
                     {
                         maxfd=newfd;
