@@ -96,7 +96,7 @@ void join(node_information *node_info,int ring, int id)
 
     /*Contact node server*/
     sprintf(buffer,"NODES %03d", ring);
-    server_response=message_serverUDP(node_info->udp_server_info,buffer,(size_t)strlen(buffer),nodes_buffer,sizeof(nodes_buffer));
+    server_response=message_serverUDP(node_info->udp_server_info,buffer,strlen(buffer),nodes_buffer,NODES_BUFFER);
 
     if (server_response==0)
     {

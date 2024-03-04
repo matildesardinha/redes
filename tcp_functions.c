@@ -16,7 +16,6 @@
 int tcp_server(char *ip, int port)
 {
     int fd, errcode;
-    ssize_t n;
     struct addrinfo hints, *res;
     char port_s[7];
 
@@ -42,17 +41,16 @@ int tcp_server(char *ip, int port)
         exit(1);
     } 
 
-    n=bind(fd,res->ai_addr,res->ai_addrlen);
-    if(n==-1)
+    if(bind(fd,res->ai_addr,res->ai_addrlen)<0)
     {
         perror("error in tcp_server bind\n");
         exit(1);
     }
 
-    if(listen(fd,99)==-1)
+    if(listen(fd,99)<0)
     {
         perror("error in tcp_server listen\n");
-        exit(1); /*Número máximo de conecções é 98 ou 99?*/
+        exit(1); 
     } 
 
     freeaddrinfo(res);

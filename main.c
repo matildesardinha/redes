@@ -59,6 +59,7 @@ int main (int argc, char **argv)
     }
 
     /*Creates a TCP server for the node*/
+
     node_info->tcp_server_fd=tcp_server(node_info->ip,node_info->port);
 
     /*Select call*/
