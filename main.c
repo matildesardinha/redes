@@ -101,7 +101,7 @@ int main (int argc, char **argv)
         /*Check user input*/
         if (FD_ISSET(STDIN_FILENO, &tmpfds)) 
         {
-            printf("leu input do utilizador\n");
+            printf("Leu input do utilizador\n");
             fgets(buffer, BUFFER_SIZE, stdin);
             len = strlen(buffer);
 
@@ -132,17 +132,13 @@ int main (int argc, char **argv)
             }
             else
             {
-                printf("\nO que está no buffer antes de processar a conecção: %s\n", buffer);
 
                 check_connection = process_new_connection(node_info,buffer,newfd);
 
-                printf("\n e aqui chega?\n");
 
                 if(check_connection==1)
                 {
-                    printf("\nantes do fd_set\n");
                     FD_SET(newfd,&readfds);
-                    printf("\ndepois do fd_set\n");
                     if(newfd > maxfd)
                     {
                         maxfd=newfd;

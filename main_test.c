@@ -16,12 +16,12 @@ int main (int argc, char **argv)
     struct addrinfo *udp_server_info=NULL;
     char ip[16]="193.136.138.142"; 
     char port[6]="59000";
-    char message[]="UNREG 061 40\n";
+    char message[]="UNREG 071 30\n";
     char buffer[128];
     int result=-1;
 
     udp_server_info=UDPserver_info(udp_server_info, ip, port);
     result=message_serverUDP (udp_server_info, message, (size_t)strlen(message),buffer,strlen(buffer));
 
-    printf("Resposta: \n%sRetorno: %d\n",buffer,result);
+    printf("Resposta: \n%s\nRetorno: %d\n",buffer,result);
 }

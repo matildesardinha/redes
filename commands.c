@@ -18,6 +18,8 @@
 
 #define MAX_ARG 4
 
+/*CUIDADO STRCMP*/
+
 void process_command(node_information* node_info, char *buffer)
 {
     char *command, *arguments[MAX_ARG];
@@ -36,16 +38,16 @@ void process_command(node_information* node_info, char *buffer)
         return;
     }
 
-    if((strcmp(command,"join") || strcmp(command,"j")) && num_args==2)
+    if((strcmp(command,"join")==0) && num_args==2)
     {
         join(node_info,atoi(arguments[0]),atoi(arguments[1]));
     }
     
-    else if ((strcmp(command,"direct join") || strcmp(command,"dj")) && num_args==4)
+    else if ((strcmp(command,"dj")==0) && num_args==4)
     {
         djoin(node_info,atoi(arguments[0]),atoi(arguments[1]),arguments[2],atoi(arguments[3]));
     }
-    else if ((strcmp(command,"show topology") || strcmp(command,"st")) && num_args==0)
+    else if ((strcmp(command,"st")==0) && num_args==0)
     {
         show_topology(node_info);
     }
@@ -181,7 +183,7 @@ void join(node_information *node_info,int ring, int id)
 void show_topology(node_information *node_info)
 {
     
-    printf("Show topology:%d %s %d\n1st successor %d %s %d\n2nd successor %d %s %d\npredecessor %d\n",
+    printf("-----Show topology-----\nNode: %d %s %d\n1st successor: %d %s %d\n2nd successor: %d %s %d\nPredecessor: %d\n-----------------------\n",
     node_info->id,node_info->ip,node_info->port,node_info->succ_id,node_info->succ_ip,node_info->succ_port,
     node_info->s_succ_id,node_info->s_succ_ip,node_info->s_succ_port,node_info->pred_id);
 
