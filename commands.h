@@ -16,4 +16,9 @@ void join(node_information *node_info,int ring, int id);
 
 void show_topology (node_information *node_info);
 
+void leave(node_information *node_info);
+
+void node_left(node_information*node_info, int id, int ring);
+
+void clear_node(node_information*node_info);
 #endif

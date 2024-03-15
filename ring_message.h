@@ -11,7 +11,11 @@ void PRED (int fd, node_information *node_info);
 
 int REG (node_information*node_info);
 
+int UNREG (node_information*node_info);
+
 void process_tcp_message(node_information*node_info, char*message, int fd);
 
 int process_new_connection(node_information*node_info, char*message,int fd);
+
+void find_new_max (node_information* node_info);
 #endif

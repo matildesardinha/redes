@@ -59,9 +59,9 @@ int tcp_server(char *ip, int port)
 }
 
 
-ssize_t send_tcp_message(int fd, char*message, int message_size)
+int send_tcp_message(int fd, char*message, int message_size)
 {
-    ssize_t bytes_written=0;
+    int bytes_written=0;
     
     while(bytes_written < message_size)
     {
@@ -73,14 +73,14 @@ ssize_t send_tcp_message(int fd, char*message, int message_size)
         }
     }
 
-    printf ("\n Mensagem enviada: %s | bytes: %ld",message,bytes_written);
+    printf ("Mensagem enviada: %s | bytes: %d\n",message,bytes_written);
 
     return bytes_written;
 }
 
-ssize_t receive_tcp_message(int fd, char* buffer, int buffer_size)
+int receive_tcp_message(int fd, char* buffer, int buffer_size)
 {
-    ssize_t bytes_read=0;
+    int bytes_read=0;
     char* end_of_message=NULL;
 
   
@@ -90,8 +90,7 @@ ssize_t receive_tcp_message(int fd, char* buffer, int buffer_size)
 
         if(bytes_read==-1 || bytes_read==0)
         {
-            perror("error in receive_tcp_message read");
-            exit(1);
+            break;
         }
 
         end_of_message= strrchr (buffer, '\n');
@@ -100,7 +99,7 @@ ssize_t receive_tcp_message(int fd, char* buffer, int buffer_size)
             *end_of_message= '\0'; 
         }
 
-         printf("\nMESSAGE RECEIVED: %s  |  Bytes: %ld\n", buffer, bytes_read);    
+         printf("\nMESSAGE RECEIVED: %s  |  Bytes: %d\n", buffer, bytes_read);    
     }
 
     return bytes_read;

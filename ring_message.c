@@ -49,7 +49,7 @@ void PRED (int fd, node_information *node_info)
 
     sprintf(buffer, "PRED %02d\n",node_info->id);
 
-    send_tcp_message(fd,buffer,BUFFER_SIZE);   
+    send_tcp_message(fd,buffer,strlen(buffer));   
 
     return;    
 }
@@ -59,8 +59,6 @@ int REG (node_information*node_info)
     int n;
     char message[BUFFER_SIZE];
     char buffer[BUFFER_SIZE];
-
-    
 
     sprintf(message, "REG %03d %02d %s %d\n", node_info->ring, node_info->id,node_info->ip,node_info->port);
 
@@ -78,53 +76,82 @@ int REG (node_information*node_info)
     return 1;
 }
 
+int UNREG (node_information*node_info)
+{
+    int n;
+    char message[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];
+
+    sprintf(message, "UNREG %03d %02d\n", node_info->ring, node_info->id);
+
+    n = message_serverUDP(node_info->udp_server_info,message,strlen(message),buffer,BUFFER_SIZE);
+
+    printf("Resposta ao UNREG : %s\n", buffer);
+    
+    if (n == 0 || strcmp(buffer, "OKUNREG") != 0)
+    {
+        printf("UNREG error: failed to unregister node.\n");
+        return 0;
+    }
+
+    return 1;
+}
+
 void process_tcp_message(node_information*node_info, char*message, int fd)
 {
     char *command, *arguments[MAX_ARG];
-    char buffer[BUFFER_SIZE];
     int num_args;
      
-    command = strtok(buffer, " ");
+    command = strtok(message, " ");
     num_args = 0;
 
-    while (num_args <= MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
+    while (num_args < MAX_ARG && (arguments[num_args] = strtok(NULL, " ")) != NULL) { 
         num_args++;
     }
 
     if(!strcmp(command,"ENTRY") && num_args==3)
     {
+        /*Close connection with succ*/
+        close(node_info->succ_fd);
+        FD_CLR(node_info->succ_fd,&(node_info->readfds));
+
+        /*Open connection with new succ*/
+        node_info->succ_fd=tcp_client(arguments[1],atoi(arguments[2]));
+
+        FD_SET(node_info->succ_fd,&(node_info->readfds));
+
+        if(node_info->succ_fd>node_info->maxfd) {node_info->maxfd=node_info->succ_fd;}
+
+        /*Sends PRED to succ*/
+        PRED(node_info->succ_fd, node_info);
+    
         /*1st successor becomes 2nd successor
         Updates 2nd successor info*/
-        node_info->s_succ_id = node_info->succ_id;
-        strcpy(node_info->s_succ_ip,node_info->succ_ip);
-        node_info->s_succ_port = node_info->succ_port;
-
-        /*Updates 1st successor info*/
-        node_info->succ_id = atoi(arguments[0]);
-        strcpy(node_info->succ_ip,arguments[1]);
-        node_info->succ_port = atoi(arguments[2]);
-        node_info->succ_fd=fd;
+        node_info->s_succ_id=node_info->succ_id;
+        
+        /*New entry becomes 1st successor
+        Updates 1st successor info*/
+        node_info->succ_id=atoi(arguments[0]);
+        strcpy(node_info->connection->ip[node_info->succ_id],arguments[1]);
+        node_info->connection->port[node_info->succ_id]=atoi(arguments[2]);
 
         /*Sends SUCC to predecessor*/
-        SUCC(node_info->pred_fd,node_info->succ_id,node_info->succ_ip,node_info->succ_port);
-
-        /*Sends PRED to 1st successor*/
-        PRED(node_info->succ_fd,node_info);
+        SUCC(node_info->pred_fd,node_info->succ_id,node_info->connection->ip[node_info->succ_id],node_info->connection->port[node_info->succ_id]);
     }
     
     else if (!strcmp(command,"SUCC") && num_args==3)
     {
         /*Updates 2nd successor*/
-        node_info->s_succ_id = atoi(arguments[0]);
-        strcpy(node_info->s_succ_ip,arguments[1]);
-        node_info->s_succ_port = atoi(arguments[2]);
+        node_info->s_succ_id=atoi(arguments[0]);
+        strcpy(node_info->connection->ip[node_info->s_succ_id],arguments[1]);
+        node_info->connection->port[node_info->s_succ_id]=atoi(arguments[2]);
+ 
     }
 
     else if (!strcmp(command,"PRED") && num_args==1)
     {
-        /*Updates predecessor*/
-        node_info->pred_id=atoi(arguments[0]);
-        node_info->pred_fd=fd;
+        printf("Error: pred can only come from a new connection\n");
+        
     }
 
     else
@@ -138,7 +165,7 @@ void process_tcp_message(node_information*node_info, char*message, int fd)
 int process_new_connection(node_information*node_info, char*message,int fd)
 {
     char *command, *arguments[MAX_ARG];
-    int num_args, fd_suc;
+    int num_args, fd_succ;
      
     command = strtok(message, " ");
     num_args = 0;
@@ -149,41 +176,73 @@ int process_new_connection(node_information*node_info, char*message,int fd)
 
     if(strcmp(command,"ENTRY")==0)
     {
-        printf("indentificou que era para processar o entry");
-        printf("Argumentos: %s %s %s",arguments[0],arguments[1],arguments[2]);
-
-        /*Sends SUCC if node has successor*/
-        if(node_info->succ_id != -1)
+    
+        /*Case is alone*/
+        if(node_info->succ_id==-1)
         {
-            SUCC(fd,node_info->succ_id,node_info->succ_ip,node_info->succ_port);
-        }
+            /*Updates succ*/
+            node_info->succ_id=atoi(arguments[0]);
+            strcpy(node_info->connection->ip[node_info->succ_id],arguments[1]);
+            node_info->connection->port[node_info->succ_id]=atoi(arguments[2]);
 
-        /*Sends ENTRY if node has predecessor*/
-        if(node_info->pred_id !=-1)
-        {
-           ENTRY(node_info->pred_fd,atoi(arguments[0]),arguments[1],atoi(arguments[2])); 
+            /*Updates s_succ*/
+            node_info->s_succ_id=node_info->id;
+            strcpy(node_info->connection->ip[node_info->s_succ_id],node_info->ip);
+            node_info->connection->port[node_info->s_succ_id]=node_info->port;
+
+            /*Updates pred*/
+            node_info->pred_id=atoi(arguments[0]);   
+            node_info->pred_fd=fd;  
+
+            FD_SET(node_info->pred_fd,&(node_info->readfds));
+
+            if(node_info->pred_fd>node_info->maxfd)
+            {
+                node_info->maxfd=node_info->pred_fd;
+            }     
+
+            /*Sends SUCC*/
+            SUCC(fd,node_info->succ_id,node_info->connection->ip[node_info->succ_id],node_info->connection->port[node_info->succ_id]);
+
+            /*Creates TCP client*/
+            fd_succ=tcp_client(arguments[1],atoi(arguments[2]));
+            node_info->succ_fd=fd_succ;
+
+            FD_SET(node_info->succ_fd,&(node_info->readfds));
+
+            if(node_info->succ_fd>node_info->maxfd)
+            {
+                node_info->maxfd=node_info->succ_fd;
+            }
+
+            /*Sends PRED*/
+            PRED(fd_succ,node_info);
+
         }
-        /*Sends PRED if node has no predecessor*/
+        /*Case node was not alone*/
         else
         {
-            /*Creates TCP client*/
-            fd_suc=tcp_client(arguments[1],atoi(arguments[2]));
+            printf("process new connection node was not alone\n");
+            printf("SUCC(%d)\n", fd);
+            /*Sends SUCC to the new node*/
+            SUCC(fd,node_info->succ_id,node_info->connection->ip[node_info->succ_id],node_info->connection->port[node_info->succ_id]);
 
-            /*Sends PRED*/ 
-            PRED(fd_suc,node_info);
+            printf("ENTRY (%d)\n", node_info->pred_fd);
+            /*Sends ENTRY to pred*/
+            ENTRY(node_info->pred_fd,atoi(arguments[0]),arguments[1],atoi(arguments[2]));
 
-            close(fd_suc);
+            /*Updates predecessor*/
+            node_info->pred_id=atoi(arguments[0]);  
+            strcpy(node_info->connection->ip[node_info->pred_id],arguments[1]);
+            node_info->connection->port[node_info->pred_id]=atoi(arguments[2]);
+            node_info->pred_fd=fd;
 
-            /*Updates SUC*/ 
-            node_info->succ_id=atoi(arguments[0]);
-            strcpy(node_info->ip,arguments[2]);
-            node_info->succ_port=atoi(arguments[2]);
+            FD_SET(node_info->pred_fd,&(node_info->readfds));
+            if( (node_info->pred_fd) > (node_info->maxfd))
+            {
+                node_info->maxfd = node_info->pred_fd;
+            }
         }
-
-        /*Update pred*/
-
-        node_info->pred_id=atoi(arguments[0]);
-        node_info->pred_fd=fd;
 
     }
     else if(strcmp(command,"PRED")==0)
@@ -192,6 +251,21 @@ int process_new_connection(node_information*node_info, char*message,int fd)
         node_info->pred_id=atoi(arguments[0]);
         node_info->pred_fd=fd;
 
+        FD_SET(node_info->pred_fd,&(node_info->readfds));
+        if(node_info->pred_fd > node_info->maxfd)
+        {
+            node_info->maxfd= node_info->pred_fd;
+        }
+
+        /*Send SUCC */
+
+        SUCC(node_info->pred_fd,node_info->succ_id,node_info->connection->ip[node_info->succ_id],node_info->connection->port[node_info->succ_id]);
+
+        /*Two nodes case*/
+        if(node_info->pred_id == node_info->succ_fd)
+        {
+            node_info->s_succ_id=node_info->id;
+        }
     }
     else
     {
@@ -200,4 +274,33 @@ int process_new_connection(node_information*node_info, char*message,int fd)
     }
       return 1;
 
+}
+
+void find_new_max (node_information*node_info)
+{
+    int i=0;
+
+    for(i=0; i<100; i++)
+    {
+        if (node_info->connection->fd[i] > node_info->connection->fd[i-1]) 
+        { node_info->maxfd=node_info->connection->fd[i];}
+    }
+    if (node_info->maxfd<node_info->succ_fd)
+    {
+        node_info->maxfd=node_info->succ_fd;
+    }
+    else if(node_info->maxfd<node_info->pred_fd)
+    {
+        node_info->maxfd=node_info->pred_fd;
+    }
+    else if(node_info->maxfd<node_info->tcp_server_fd)
+    {
+        node_info->maxfd=node_info->tcp_server_fd;
+    }
+    else if(node_info->maxfd<STDIN_FILENO)
+    {
+        node_info->maxfd=STDIN_FILENO;
+    }
+    
+    return ;
 }

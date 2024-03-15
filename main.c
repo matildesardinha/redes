@@ -66,24 +66,23 @@ int main (int argc, char **argv)
 
     /*Select call*/
 
-    fd_set readfds;
-    int maxfd, len=0, newfd, receive,check_connection=0;
+    int len=0, newfd, receive,check_connection=0, i;
     struct sockaddr client_addr;
     socklen_t client_len= sizeof(client_len);
 
-    FD_ZERO (&readfds);
-    FD_SET (STDIN_FILENO,&readfds);
-    FD_SET (node_info->tcp_server_fd,&readfds);
+    FD_ZERO (&(node_info->readfds));
+    FD_SET (STDIN_FILENO,&(node_info->readfds));
+    FD_SET (node_info->tcp_server_fd,&(node_info->readfds));
 
     /*Set maxfd*/
 
     if(node_info->tcp_server_fd > STDIN_FILENO)
     {
-        maxfd=node_info->tcp_server_fd;
+        node_info->maxfd=node_info->tcp_server_fd;
     }
     else
     {
-        maxfd= STDIN_FILENO;
+        node_info->maxfd= STDIN_FILENO;
     }
 
     
@@ -91,11 +90,11 @@ int main (int argc, char **argv)
     {
         fd_set tmpfds;
         FD_ZERO(&tmpfds);
-        tmpfds=readfds;
+        tmpfds=node_info->readfds;
 
-        if(select(maxfd+1,&tmpfds,NULL,NULL,NULL)<0)
+        if(select(node_info->maxfd + 1,&tmpfds,NULL,NULL,NULL)<0)
         {
-            printf("Select() Error");
+            printf("Select() Error\n");
         }
 
         /*Check user input*/
@@ -118,6 +117,7 @@ int main (int argc, char **argv)
 
         else if(FD_ISSET(node_info->tcp_server_fd,&tmpfds))
         {
+            printf("checks new connection\n");   
             newfd=accept(node_info->tcp_server_fd,&client_addr,&client_len);
             if(newfd<0)
             {
@@ -126,62 +126,103 @@ int main (int argc, char **argv)
             }
 
             receive=receive_tcp_message(newfd,buffer,BUFFER_SIZE);
-            if(receive<0)
+            if(receive<0 || receive==0)
             {
                 printf("Could not receive tcp message\n");
             }
             else
             {
-
                 check_connection = process_new_connection(node_info,buffer,newfd);
-
 
                 if(check_connection==1)
                 {
-                    FD_SET(newfd,&readfds);
-                    if(newfd > maxfd)
+                    FD_SET(newfd,&(node_info->readfds));
+                    if(newfd > node_info->maxfd)
                     {
-                        maxfd=newfd;
+                        node_info->maxfd=newfd;
                     }
                 }
             }
             
         }
-
-        /*Check for node messages*/
-        else
+        /*Check successor*/
+        else if(FD_ISSET(node_info->succ_fd,&tmpfds))
         {
-            if(node_info->succ_fd !=-1)
-            {
-                if(FD_ISSET(node_info->succ_fd,&tmpfds))
-                {
-                    receive=receive_tcp_message(node_info->succ_fd,buffer,BUFFER_SIZE);
+            receive=receive_tcp_message(node_info->succ_fd,buffer,BUFFER_SIZE);
                     if(receive<0)
                     {
                         printf("Could not receive tcp message\n");
+                    }
+                     /*Node disconnected*/
+                    else if(receive==0)
+                    {
+                        node_left(node_info,node_info->succ_id,node_info->ring);
                     }
                     else
                     {
                         process_tcp_message(node_info,buffer,node_info->succ_fd);
-                    }
-                }
-            }
-
-            else if(node_info->pred_fd != -1)
-            {
-                  receive=receive_tcp_message(node_info->pred_fd,buffer,BUFFER_SIZE);
+                    }               
+        }
+        /*Check predecessor*/
+        else if(FD_ISSET(node_info->pred_fd,&tmpfds))
+        {
+            receive=receive_tcp_message(node_info->pred_fd,buffer,BUFFER_SIZE);
                     if(receive<0)
                     {
                         printf("Could not receive tcp message\n");
                     }
+                     /*Node disconnected*/
+                    else if(receive==0)
+                    {
+                        node_left(node_info,node_info->pred_id,node_info->ring);
+                    }
                     else
                     {
-                        process_tcp_message(node_info,buffer,node_info->pred_fd);
-                    }
-            }
-
+                        process_tcp_message(node_info,buffer,node_info->succ_fd);
+                    }               
         }
 
-    }
+        /*Check for node messages*/
+        else
+        {
+           for(i=0; i<100 ; i++)
+           {
+            if(node_info->connection->fd[i] != -1)
+            {
+                printf("preso nas mensagens de conecção\n");
+                if(FD_ISSET(node_info->connection->fd[i],&tmpfds))
+                {
+                  receive=receive_tcp_message(node_info->connection->fd[i],buffer,BUFFER_SIZE);
+                    if(receive<0)
+                    {
+                        printf("Could not receive tcp message\n");
+                    }
+                     /*Node disconnected*/
+                    else if(receive==0)
+                    {
+                        close(node_info->connection->fd[i]);
+                        FD_CLR(node_info->connection->fd[i],&(node_info->readfds));
 
+                        /*Updates maxfd*/
+                        if(node_info->maxfd==node_info->connection->fd[i])
+                        {
+                          node_info->connection->fd[i]=-1;    
+                          find_new_max(node_info);
+                        }
+                        else
+                        {
+                           node_info->connection->fd[i]=-1; 
+                        }
+            
+                        node_left(node_info,i,node_info->ring);
+                    }
+                    else
+                    {
+                        process_tcp_message(node_info,buffer,node_info->connection->fd[i]);
+                    }
+                }
+            }
+           } 
+        }
+    }
 }
