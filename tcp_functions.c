@@ -61,7 +61,7 @@ int tcp_server(char *ip, int port)
 
 int send_tcp_message(int fd, char*message, int message_size)
 {
-    int bytes_written=0;
+    ssize_t bytes_written=0;
     
     while(bytes_written < message_size)
     {
@@ -73,35 +73,35 @@ int send_tcp_message(int fd, char*message, int message_size)
         }
     }
 
-    printf ("Mensagem enviada: %s | bytes: %d\n",message,bytes_written);
+    /*printf ("\nMESSAGE SENT: %s | bytes: %ld\n",message,bytes_written);*/
 
     return bytes_written;
 }
 
-int receive_tcp_message(int fd, char* buffer, int buffer_size)
+int receive_tcp_message(int fd, char* buffer, int buffer_size) 
 {
-    int bytes_read=0;
-    char* end_of_message=NULL;
+    ssize_t bytes_read = 0;
 
-  
-    while (end_of_message == NULL)
-    {
-        bytes_read +=read(fd,buffer + bytes_read,buffer_size-bytes_read);
+    /*Clear the buffer before using it*/
+    memset(buffer, 0, buffer_size);
 
-        if(bytes_read==-1 || bytes_read==0)
-        {
+    /*Continue reading until buffer is full or newline is encountered*/
+    while (bytes_read < buffer_size - 1) {
+        /*Read one byte at a time*/ 
+        ssize_t bytes = read(fd, buffer + bytes_read, 1);
+        if (bytes == -1 || bytes == 0) {
             break;
         }
+        bytes_read += bytes;
 
-        end_of_message= strrchr (buffer, '\n');
-        if(end_of_message !=NULL)
-        {
-            *end_of_message= '\0'; 
+        /*Check if the received data contains a newline character*/ 
+        if (buffer[bytes_read - 1] == '\n') {
+            buffer[bytes_read - 1] = '\0';  /*Terminate the string at the newline*/ 
+            break;  /*Exit loop once newline is found*/ 
         }
-
-         printf("\nMESSAGE RECEIVED: %s  |  Bytes: %d\n", buffer, bytes_read);    
     }
 
+    /*printf("\nMESSAGE RECEIVED: %s  |  Bytes: %ld\n", buffer, bytes_read);*/
     return bytes_read;
 }
 

@@ -17,6 +17,7 @@
 #include "commands.h"
 
 #define BUFFER_SIZE 200
+#define NODES 16
 
 int main (int argc, char **argv)
 {
@@ -53,20 +54,20 @@ int main (int argc, char **argv)
     /*Allocates space for the node and sets up inicial parameters*/
     if (argc==3)
     {
-        node_info=set_up_node(atoi(argv[0]),atoi(argv[2]),argv[1],regIP,regUDP);
+        node_info=set_up_node(atoi(argv[2]),argv[1],regIP,regUDP);
     }
     else
     {
-        node_info=set_up_node(atoi(argv[0]),atoi(argv[2]),argv[1],argv[3],atoi(argv[4]));
+        node_info=set_up_node(atoi(argv[2]),argv[1],argv[3],atoi(argv[4]));
     }
 
     /*Creates a TCP server for the node*/
 
-    node_info->tcp_server_fd=tcp_server(node_info->ip,node_info->port);
+    node_info->tcp_server_fd=tcp_server(argv[1],atoi(argv[2]));
 
     /*Select call*/
 
-    int len=0, newfd, receive,check_connection=0, i;
+    int len=0, newfd, receive,i;
     struct sockaddr client_addr;
     socklen_t client_len= sizeof(client_len);
 
@@ -100,7 +101,6 @@ int main (int argc, char **argv)
         /*Check user input*/
         if (FD_ISSET(STDIN_FILENO, &tmpfds)) 
         {
-            printf("Leu input do utilizador\n");
             fgets(buffer, BUFFER_SIZE, stdin);
             len = strlen(buffer);
 
@@ -132,16 +132,8 @@ int main (int argc, char **argv)
             }
             else
             {
-                check_connection = process_new_connection(node_info,buffer,newfd);
+                process_new_connection(node_info,buffer,newfd);
 
-                if(check_connection==1)
-                {
-                    FD_SET(newfd,&(node_info->readfds));
-                    if(newfd > node_info->maxfd)
-                    {
-                        node_info->maxfd=newfd;
-                    }
-                }
             }
             
         }
@@ -182,17 +174,16 @@ int main (int argc, char **argv)
                     }               
         }
 
-        /*Check for node messages*/
+        /*Check chords*/
         else
         {
-           for(i=0; i<100 ; i++)
+           for(i=0; i<NODES ; i++)
            {
-            if(node_info->connection->fd[i] != -1)
+            if(node_info->fd[i] != -1)
             {
-                printf("preso nas mensagens de conecção\n");
-                if(FD_ISSET(node_info->connection->fd[i],&tmpfds))
+                if(FD_ISSET(node_info->fd[i],&tmpfds))
                 {
-                  receive=receive_tcp_message(node_info->connection->fd[i],buffer,BUFFER_SIZE);
+                  receive=receive_tcp_message(node_info->fd[i],buffer,BUFFER_SIZE);
                     if(receive<0)
                     {
                         printf("Could not receive tcp message\n");
@@ -200,25 +191,25 @@ int main (int argc, char **argv)
                      /*Node disconnected*/
                     else if(receive==0)
                     {
-                        close(node_info->connection->fd[i]);
-                        FD_CLR(node_info->connection->fd[i],&(node_info->readfds));
+                        close(node_info->fd[i]);
+                        FD_CLR(node_info->fd[i],&(node_info->readfds));
 
                         /*Updates maxfd*/
-                        if(node_info->maxfd==node_info->connection->fd[i])
+                        if(node_info->maxfd==node_info->fd[i])
                         {
-                          node_info->connection->fd[i]=-1;    
+                          node_info->fd[i]=-1;    
                           find_new_max(node_info);
                         }
                         else
                         {
-                           node_info->connection->fd[i]=-1; 
+                           node_info->fd[i]=-1; 
                         }
             
                         node_left(node_info,i,node_info->ring);
                     }
                     else
                     {
-                        process_tcp_message(node_info,buffer,node_info->connection->fd[i]);
+                        process_tcp_message(node_info,buffer,node_info->fd[i]);
                     }
                 }
             }

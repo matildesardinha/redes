@@ -16,7 +16,7 @@ int main (int argc, char **argv)
     struct addrinfo *udp_server_info=NULL;
     char ip[16]="193.136.138.142"; 
     char port[6]="59000";
-    char message[]="UNREG 132 40\n";
+    char message[]="UNREG 217 40\n";
     char buffer[128];
     int result=-1;
 

@@ -15,14 +15,17 @@ all: $(PROGS)
 test: udp_functions.o main_test.c
 	$(CC) $(CFLAGS) udp_functions.o main_test.c -o test
 
-cor: check_usage.o udp_functions.o tcp_functions.o data_structures.o ring_message.o  commands.o  main.c
-	$(CC) $(CFLAGS) check_usage.o udp_functions.o tcp_functions.o data_structures.o ring_message.o  commands.o  main.c -o cor
+cor: check_usage.o udp_functions.o tcp_functions.o data_structures.o ring_message.o routing.o commands.o  main.c
+	$(CC) $(CFLAGS) check_usage.o udp_functions.o tcp_functions.o data_structures.o ring_message.o routing.o commands.o  main.c -o cor
 
-commands.o: commands.c commands.h data_structures.h udp_functions.h tcp_functions.h ring_message.h
+commands.o: commands.c commands.h data_structures.h udp_functions.h tcp_functions.h ring_message.h routing.h
 	$(CC) $(CFLAGS) -c commands.c
 
-ring_message.o: ring_message.c ring_message.h tcp_functions.h udp_functions.h data_structures.h
+ring_message.o: ring_message.c ring_message.h tcp_functions.h udp_functions.h data_structures.h routing.h
 	$(CC) $(CFLAGS) -c ring_message.c
+
+routing.o: routing.c tcp_functions.h data_structures.h
+	$(CC) $(CFLAGS) -c routing.c
 
 data_structures.o: data_structures.c data_structures.h udp_functions.h
 	$(CC) $(CFLAGS) -c data_structures.c	

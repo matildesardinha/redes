@@ -12,6 +12,7 @@
 #include "udp_functions.h"
 #include "tcp_functions.h"
 #include "ring_message.h"
+#include "routing.h"
 
 #define BUFFER 200
 
@@ -19,7 +20,8 @@
 
 #define MAX_ARG 4
 
-/*CUIDADO STRCMP*/
+#define NODES 16
+
 
 void process_command(node_information* node_info, char *buffer)
 {
@@ -56,6 +58,18 @@ void process_command(node_information* node_info, char *buffer)
     {
         leave(node_info);
     }
+    else if((strcmp(command,"sp")==0) && num_args==1)
+    {
+        show_path(node_info,atoi(arguments[0]));
+    }
+    else if((strcmp(command,"sf")==0) && num_args==0)
+    {
+        show_forwarding(node_info);
+    }
+    else if((strcmp(command,"sr")==0) && num_args==1)
+    {
+        show_routing(node_info,atoi(arguments[0]));
+    }
     else
     {
         printf("Invalid command\n");
@@ -72,9 +86,8 @@ void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int su
     /*Update SUCC*/
     node_info->id=id;
     node_info->succ_id=succ_id;
-    strcpy(node_info->connection->ip[succ_id],succ_ip);
-    node_info->connection->port[succ_id]=succ_port;
-
+    strcpy(node_info->ip[succ_id],succ_ip);
+    node_info->port[succ_id]=succ_port;
 
     /*Client connection*/
     fd = tcp_client (succ_ip, succ_port);
@@ -89,7 +102,10 @@ void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int su
     }
 
     /*Send entry message to the successor*/
-    ENTRY(fd,node_info->id,node_info->ip,node_info->port);
+    ENTRY(fd,node_info->id,node_info->tcp_ip,node_info->tcp_port);
+
+    /*Send shortest paths table*/
+    send_route_new_connect(fd,node_info);   
 
     return;
 }
@@ -104,8 +120,14 @@ void join(node_information *node_info,int ring, int id)
 
     int ring_ids[100], i=0, id_read=0;
 
+    /*Set up info about the node*/
     node_info->ring=ring;
     node_info->id=id;
+    node_info->destinations[0]=id;
+    node_info->expedition[0]=id;
+
+    sprintf(node_info->short_way[0]->field,"%d",id);
+
 
     /*Contact node server*/
     sprintf(buffer,"NODES %03d", ring);
@@ -165,7 +187,14 @@ void join(node_information *node_info,int ring, int id)
             {
                 i++;
             }
+
+            /*Update tables*/
             node_info->id=i;
+            node_info->destinations[0]=i;
+            node_info->expedition[0]=i;
+
+            sprintf(node_info->short_way[0]->field,"%d",i);
+
             printf("join: the select ID already exists. Assigned ID: %02d\n",i);
         }
 
@@ -208,17 +237,15 @@ void show_topology(node_information *node_info)
     }
     else
     {
-        succ_port=node_info->connection->port[succ_id];
-        s_succ_port=node_info->connection->port[s_succ_id];
-        strcpy(succ_ip,node_info->connection->ip[succ_id]);
-        strcpy(s_succ_ip,node_info->connection->ip[s_succ_id]);
+        succ_port=node_info->port[succ_id];
+        s_succ_port=node_info->port[s_succ_id];
+        strcpy(succ_ip,node_info->ip[succ_id]);
+        strcpy(s_succ_ip,node_info->ip[s_succ_id]);
     }
     
     printf("-----Show topology-----\nNode: %d %s %d\n1st successor: %d %s %d\n2nd successor: %d %s %d\nPredecessor: %d\n-----------------------\n",
-    node_info->id,node_info->ip,node_info->port,succ_id,succ_ip,succ_port,
+    node_info->id,node_info->tcp_ip,node_info->tcp_port,succ_id,succ_ip,succ_port,
     s_succ_id,s_succ_ip,s_succ_port,pred_id);
-
-    printf("FDS: fd_pred:%d , fd_succ:%d", node_info->pred_fd,node_info->succ_fd);
 
     return;
 }
@@ -257,12 +284,12 @@ void leave(node_information *node_info)
             }
             
             /*Close connections with chords*/
-            for (int i=1; i<100; i++)
+            for (int i=1; i<NODES; i++)
             {
-                if(node_info->connection->fd[i] != -1) 
+                if(node_info->fd[i] != -1) 
                 {
-                    close(node_info->connection->fd[i]);
-                    FD_CLR(node_info->connection->fd[i], &(node_info->readfds));
+                    close(node_info->fd[i]);
+                    FD_CLR(node_info->fd[i], &(node_info->readfds));
                 }
             }
             
@@ -294,6 +321,7 @@ void node_left(node_information*node_info,int id,int ring)
     /*Case node was a SUCC*/
     else if (node_info->succ_id==id)
     {
+        printf("Case node was a SUCC\n");
         /*Close connection with node that left*/
         close(node_info->succ_fd);
         FD_CLR(node_info->succ_fd,&(node_info->readfds));
@@ -309,10 +337,9 @@ void node_left(node_information*node_info,int id,int ring)
             node_info->succ_fd=-1; 
         }        
 
-        printf("Case node was a SUCC\n");
         /*Creates TCP client with 2nd succ*/
         int fd;
-        fd= tcp_client(node_info->connection->ip[node_info->s_succ_id],node_info->connection->port[node_info->s_succ_id]);
+        fd= tcp_client(node_info->ip[node_info->s_succ_id],node_info->port[node_info->s_succ_id]);
 
         /*Updates SUCC*/
         node_info->succ_fd=fd;
@@ -323,10 +350,17 @@ void node_left(node_information*node_info,int id,int ring)
         node_info->succ_id=node_info->s_succ_id;
 
         /*Sends SUCC*/
-        SUCC(node_info->pred_fd,node_info->succ_id,node_info->connection->ip[node_info->succ_id],node_info->connection->port[node_info->succ_id]);
+        SUCC(node_info->pred_fd,node_info->succ_id,node_info->ip[node_info->succ_id],node_info->port[node_info->succ_id]);
 
         /*Sends PRED*/
         PRED(node_info->succ_fd,node_info);
+
+        /*Update tables*/
+        update_tables_after_remove(id,node_info);
+
+        /*Sends shortest path table*/
+        send_route_new_connect(fd,node_info);
+
     }
     /*Case node was PRED*/
     else if(node_info->pred_id==id)
@@ -345,6 +379,8 @@ void node_left(node_information*node_info,int id,int ring)
         {
              node_info->pred_fd=-1; 
         }
+
+        update_tables_after_remove(id,node_info);
     }
     /*Case node was a chord*/
     else
@@ -357,7 +393,7 @@ void node_left(node_information*node_info,int id,int ring)
 
 void clear_node(node_information*node_info)
 {
-    int i; 
+    int i,j;
 
     node_info->pred_fd=-1;
     node_info->pred_id=-1;
@@ -366,11 +402,32 @@ void clear_node(node_information*node_info)
     node_info->succ_fd=-1;
     node_info->succ_id=-1;
 
+    
+    for(i=0; i<NODES; i++)
+    {
+        node_info->destinations[i]=-1;
+        node_info->fd[i]=-1;       
+    }
     for (i=0 ;i<100; i++)
     {
-        node_info->connection->fd[i]=-1;
-        node_info->connection->port[i]=-1;
-        strcpy(node_info->connection->ip[i],"000.000.000.000");
+        node_info->port[i]=-1;
+        strcpy(node_info->ip[i],"000.000.000.000");
+    }
+
+    /*Clear tables*/
+    for(i=0; i<NODES ; i++)
+    {
+        node_info->destinations[i]=-1;
+        node_info->neighbours[i]=-1;
+        node_info->expedition[i]=-1;
+        node_info->short_way[i]->n_fields=-1;
+        strcpy(node_info->short_way[i]->field,"-");
+
+        for(j=0; j<NODES ; j++)
+        {
+            node_info->routing_table[i][j]->n_fields=-1;
+            strcpy(node_info->routing_table[i][j]->field,"-");
+        }
     }
     
     return;
