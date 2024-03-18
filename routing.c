@@ -331,12 +331,12 @@ void process_route(node_information *node_info,int node, int dest, char*path)
     while (token != NULL) {
         if (!strcmp(token, id)) {
             valid_route = 0;
-            printf("route is invalid\n");
             break;
         }
     i++; // Counting the number of tokens
     token = strtok(NULL, "-");
     }
+
 
     /*If the route is valid (doesn't include "ourselves")*/
     if (valid_route == 1)
@@ -344,7 +344,7 @@ void process_route(node_information *node_info,int node, int dest, char*path)
         printf("route is valid\n");
 
         dest_place=find(dest,node_info->destinations);
-        neigh_place=find(node,node_info->neighbours);
+        neigh_place=find(node,node_info->neighbours);        
 
         /*If neighbour isn't a neigh in the tables, it is added*/
         if(neigh_place == -1)
@@ -382,6 +382,11 @@ void process_route(node_information *node_info,int node, int dest, char*path)
             send_route_messages(node_info,dest);
         }
 
+    }
+    else if(valid_route==0)
+    {
+        printf("route is invalid\n");
+        process_empty_route(node_info,node,dest);
     }
     return;
 }
