@@ -173,6 +173,10 @@ void process_tcp_message(node_information*node_info, char*message, int fd)
     {
         process_empty_route(node_info,atoi(arguments[0]),atoi(arguments[1]));
     }
+    else if(!strcmp(command,"CHAT") && num_args==3)
+    {
+        receive_chat(node_info,atoi(arguments[0]),atoi(arguments[1]),arguments[2]);
+    }
     else
     {
         printf("Invalid ring message\n");

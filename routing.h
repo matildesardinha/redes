@@ -8,6 +8,8 @@ void ROUTE (int fd,node_information *node_info, int dest);
 
 void ROUTE_EMPTY(int fd,node_information* node_info, int dest);
 
+void CHAT (int fd, int node, int dest, char*message);
+
 void show_routing (node_information *node_info,int dest);
 
 void show_path (node_information *node_info, int dest);
@@ -35,5 +37,9 @@ void update_tables_after_remove (int removed, node_information *node_info);
 void process_route(node_information *node_info,int node, int dest, char*path);
 
 void process_empty_route(node_information *node_info, int node, int dest);
+
+void send_chat(node_information*node_info, int node, int dest, char*message);
+
+void receive_chat(node_information* node_info, int node, int dest, char*message);
 
 #endif

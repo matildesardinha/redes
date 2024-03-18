@@ -41,7 +41,7 @@ void process_command(node_information* node_info, char *buffer)
         return;
     }
 
-    if((strcmp(command,"join")==0) && num_args==2)
+    if((strcmp(command,"join")==0 || strcmp(command,"j")==0) && num_args==2)
     {
         join(node_info,atoi(arguments[0]),atoi(arguments[1]));
     }
@@ -54,7 +54,7 @@ void process_command(node_information* node_info, char *buffer)
     {
         show_topology(node_info);
     }
-    else if((strcmp(command,"leave")==0) && num_args==0)
+    else if((strcmp(command,"leave")==0 || strcmp(command,"l")==0) && num_args==0)
     {
         leave(node_info);
     }
@@ -69,6 +69,10 @@ void process_command(node_information* node_info, char *buffer)
     else if((strcmp(command,"sr")==0) && num_args==1)
     {
         show_routing(node_info,atoi(arguments[0]));
+    }
+    else if((strcmp(command,"message")==0 || strcmp(command,"m")==0) && num_args==2)
+    {
+        send_chat(node_info,node_info->id,atoi(arguments[0]),arguments[1]);
     }
     else
     {

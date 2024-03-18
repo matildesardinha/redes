@@ -14,6 +14,7 @@
 #define BUFFER_SIZE 200
 #define NODES 16
 #define CONECT 100
+#define CHAT_BUFFER 128
 
 void ROUTE (int fd, node_information *node_info, int dest)
 {
@@ -32,6 +33,17 @@ void ROUTE_EMPTY(int fd,node_information* node_info, int dest)
     char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "ROUTE %02d %02d\n", node_info->id,dest);
+
+    send_tcp_message(fd,buffer,strlen(buffer));
+
+    return;
+}
+
+void CHAT (int fd, int node, int dest, char*message)
+{
+    char buffer[CHAT_BUFFER];
+
+    sprintf(buffer, "CHAT %02d %02d %s\n",node,dest,message);
 
     send_tcp_message(fd,buffer,strlen(buffer));
 
@@ -445,6 +457,53 @@ void process_empty_route(node_information *node_info, int node, int dest)
 
         }
         return;
+    }
+
+    void send_chat(node_information*node_info, int node, int dest, char*message)
+    {
+        int dest_place,neigh_place;
+
+        dest_place=find(dest, node_info->destinations);
+
+        /*If there is a route to dest*/
+        if(dest_place != -1 && dest != node_info->id)
+        {
+            if(node_info->expedition[dest_place] != -1)
+            {
+                /*Send to pred*/
+                if(node_info->expedition[dest_place]==node_info->pred_id)
+                {
+                    CHAT(node_info->pred_fd,node,dest,message);
+                }
+                /*Send to succ*/
+                else if(node_info->expedition[dest_place]==node_info->succ_id)
+                {
+                    CHAT(node_info->succ_fd,node,dest,message);
+                }
+                /*Send to chord*/
+                else
+                {
+                    neigh_place=find(node_info->expedition[dest_place],node_info->neighbours);
+                    CHAT(node_info->fd[neigh_place],node,dest,message);
+                }
+            }
+        }
+        
+        return;
+    }
+
+    void receive_chat(node_information* node_info, int node, int dest, char*message)
+    {
+        /*If the message reached destination show it to user*/
+        if(dest==node_info->id)
+        {
+            printf("Message sent by node %02d: %s\n",node,message);
+        }
+        /*Otherwise, sends it to the next node*/
+        else
+        {
+            send_chat(node_info,node,dest,message);
+        }
     }
     
 
