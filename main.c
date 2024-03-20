@@ -15,6 +15,7 @@
 #include "ring_message.h"
 #include "udp_functions.h"
 #include "commands.h"
+#include "routing.h"
 
 #define BUFFER_SIZE 200
 #define NODES 16
@@ -204,8 +205,8 @@ int main (int argc, char **argv)
                         {
                            node_info->fd[i]=-1; 
                         }
-            
-                        node_left(node_info,i,node_info->ring);
+
+                        node_left(node_info,node_info->neighbours[i],node_info->ring);
                     }
                     else
                     {

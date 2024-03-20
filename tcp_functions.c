@@ -73,7 +73,7 @@ int send_tcp_message(int fd, char*message, int message_size)
         }
     }
 
-    /*printf ("\nMESSAGE SENT: %s | bytes: %ld\n",message,bytes_written);*/
+    printf ("\nMESSAGE SENT: %s | bytes: %ld\n",message,bytes_written);
 
     return bytes_written;
 }
@@ -101,7 +101,7 @@ int receive_tcp_message(int fd, char* buffer, int buffer_size)
         }
     }
 
-    /*printf("\nMESSAGE RECEIVED: %s  |  Bytes: %ld\n", buffer, bytes_read);*/
+    printf("\nMESSAGE RECEIVED: %s  |  Bytes: %ld\n", buffer, bytes_read);
     return bytes_read;
 }
 

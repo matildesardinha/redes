@@ -74,6 +74,14 @@ void process_command(node_information* node_info, char *buffer)
     {
         send_chat(node_info,node_info->id,atoi(arguments[0]),arguments[1]);
     }
+    else if((strcmp(command,"chord")==0 || strcmp(command,"c")==0) && num_args==0)
+    {
+        chord(node_info);
+    }
+    else if(strcmp(command,"rc")==0 && num_args==0)
+    {
+        remove_chord(node_info);
+    }
     else
     {
         printf("Invalid command\n");
@@ -199,6 +207,8 @@ void join(node_information *node_info,int ring, int id)
 
             sprintf(node_info->short_way[0]->field,"%d",i);
 
+            printf("id guardado: %d\n", node_info->id);
+
             printf("join: the select ID already exists. Assigned ID: %02d\n",i);
         }
 
@@ -305,6 +315,107 @@ void leave(node_information *node_info)
     return;
 }
 
+void chord (node_information*node_info)
+{
+    char nodes_buffer[NODES_BUFFER];
+    char buffer[BUFFER], *ips[16];
+    int server_response, ids[NODES],ports[NODES],num_nodes=0,selected_node, chord_fd, neigh_place;
+
+    if(node_info->chord_id == -1)
+    {
+    /*Connect node server*/
+    sprintf(buffer,"NODES %03d", node_info->ring);
+    server_response=message_serverUDP(node_info->udp_server_info,buffer,strlen(buffer),nodes_buffer,NODES_BUFFER);
+
+    if (server_response==0)
+    {
+        printf("Could not connect to node server");
+        return;
+    }
+
+
+    /*Parse nodes data*/
+    const char *current_position = strchr(nodes_buffer, '\n') + 1; /*Move to the next line*/
+    while (num_nodes<NODES) 
+    {
+        if(ids[num_nodes] != node_info->id && ids[num_nodes]!=node_info->pred_id && ids[num_nodes] != node_info->succ_id)
+        {
+            sscanf(current_position, "%d %15s %d", &ids[num_nodes], ips[num_nodes], &ports[num_nodes]);
+            num_nodes++;            
+        }
+
+        /*Move to the next line*/
+        current_position = strchr(current_position, '\n');
+        if (current_position == NULL)
+            break;
+        current_position++; /*Move past the newline character*/ 
+    }
+
+    /*Select a random node to create a chord with*/
+    selected_node=(rand()%(num_nodes-1))+1;
+
+    /*Create TCP client*/
+    chord_fd=tcp_client(ips[selected_node],ports[selected_node]);
+
+    neigh_place=add_neighbour(node_info,ids[selected_node]);
+    node_info->chord_id=ids[selected_node];
+
+    FD_SET(chord_fd,&(node_info->readfds));
+    if(chord_fd>node_info->maxfd)
+    {
+        node_info->maxfd=chord_fd;
+    }
+
+    node_info->fd[neigh_place]=chord_fd;
+
+    /*Sends chord message*/
+    CHORD(chord_fd,node_info);
+    }
+    else
+    {
+        printf("Node already created a chord\n");
+    }
+    return;
+}
+
+void receive_chord(node_information* node_info, int node, int fd)
+{
+    int neigh_place;
+
+    /*Add chord to neighbours*/
+    neigh_place=add_neighbour(node_info,node);
+    node_info->fd[neigh_place]=fd;
+
+    return;
+}
+
+void remove_chord(node_information *node_info)
+{
+    int neigh_place;
+
+    neigh_place=find(node_info->chord_id,node_info->neighbours);
+
+    /*Close connection*/
+    close(node_info->fd[neigh_place]);
+    FD_CLR(node_info->fd[neigh_place],&(node_info->readfds));
+
+    /*Calculate new maxfd if needed*/
+    if(node_info->fd[neigh_place] == node_info->maxfd)
+    {
+        node_info->fd[neigh_place]=-1;
+        find_new_max(node_info);
+    }
+    else
+    {
+        node_info->fd[neigh_place]=-1;  
+    }
+    
+    update_tables_after_remove(node_info->chord_id,node_info);
+    node_info->chord_id=-1;
+
+    return;
+}
+
 void node_left(node_information*node_info,int id,int ring)
 {
     /*Case 2 nodes ring*/
@@ -390,6 +501,9 @@ void node_left(node_information*node_info,int id,int ring)
     else
     {
         printf("node leaving was a chord\n");
+
+        /*Updates tables after remove*/
+        update_tables_after_remove(id,node_info);
     }
   
     return;

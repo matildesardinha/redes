@@ -9,6 +9,8 @@ void SUCC (int fd, int succ_id, char*succ_ip, int succ_port);
 
 void PRED (int fd, node_information *node_info);
 
+void CHORD (int fd, node_information* node_info);
+
 int REG (node_information*node_info);
 
 int UNREG (node_information*node_info);

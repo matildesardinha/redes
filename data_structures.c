@@ -50,6 +50,7 @@ node_information* set_up_node(int tcp_port,char*tcp_ip,char*reg_ip,int reg_UDP)
 
     /*Initialize node info*/
     node_info->ring=-1;
+    node_info->chord_id=-1;
 
     strcpy(node_info->udp_ip,reg_ip);
     node_info->udp_port=reg_UDP;

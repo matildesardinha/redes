@@ -11,6 +11,7 @@
 #include "tcp_functions.h"
 #include "udp_functions.h"
 #include "routing.h"
+#include "commands.h"
 
 
 #define BUFFER_SIZE 200
@@ -46,7 +47,6 @@ void SUCC (int fd, int succ_id, char*succ_ip, int succ_port)
 
 void PRED (int fd, node_information *node_info)
 {
- 
     char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "PRED %02d\n",node_info->id);
@@ -54,6 +54,17 @@ void PRED (int fd, node_information *node_info)
     send_tcp_message(fd,buffer,strlen(buffer));   
 
     return;    
+}
+
+void CHORD (int fd, node_information* node_info)
+{
+    char buffer[BUFFER_SIZE];
+
+    sprintf(buffer, "CHORD %02d\n",node_info->id);
+
+    send_tcp_message(fd,buffer,strlen(buffer));   
+
+    return; 
 }
 
 int REG (node_information*node_info)
@@ -116,11 +127,12 @@ void process_tcp_message(node_information*node_info, char*message, int fd)
         /*Close connection with succ*/
         close(node_info->succ_fd);
         FD_CLR(node_info->succ_fd,&(node_info->readfds));
+        node_info->succ_fd=-1;
 
         /*If it's not the 2 nodes case, remove from the table*/
         if(node_info->id != node_info->s_succ_id)
         {
-           update_tables_after_remove(node_info->succ_id,node_info); 
+           update_tables_after_remove(node_info->succ_id,node_info);
         }
 
         /*Open connection with new succ*/
@@ -248,6 +260,12 @@ void process_new_connection(node_information*node_info, char*message,int fd)
         /*Case node was not alone*/
         else
         {
+            /*Removes old predecessor from tables if it isn't the 2 nodes case*/
+            if(node_info->pred_id != node_info->succ_id)
+            {
+                update_tables_after_remove(node_info->pred_id,node_info); 
+            }
+            
             printf("process new connection node was not alone\n");
             /*Sends SUCC to the new node*/
             SUCC(fd,node_info->succ_id,node_info->ip[node_info->succ_id],node_info->port[node_info->succ_id]);
@@ -274,6 +292,9 @@ void process_new_connection(node_information*node_info, char*message,int fd)
     }
     else if(strcmp(command,"PRED")==0)
     {
+        /*Removes old predecessor from tables*/
+        update_tables_after_remove(node_info->pred_id,node_info);
+
         /*Updates predecessor*/
         node_info->pred_id=atoi(arguments[0]);
         node_info->pred_fd=fd;
@@ -295,6 +316,10 @@ void process_new_connection(node_information*node_info, char*message,int fd)
         {
             node_info->s_succ_id=node_info->id;
         }
+    }
+    else if(!strcmp(command,"CHORD"))
+    {
+        receive_chord(node_info, atoi(arguments[0]), fd);
     }
     else
     {

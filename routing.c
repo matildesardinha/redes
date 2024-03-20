@@ -193,64 +193,70 @@ void update_tables_after_remove (int removed, node_information *node_info)
     neigh=find(removed,node_info->neighbours);
     node_info->neighbours[neigh]=-1;
 
-
-    /*Remove from routes table*/
-    for(i=0; i<NODES; i++)
+    if(neigh==-1)
     {
-      if( (node_info->routing_table[i][neigh]->n_fields) !=-1)
-      {
-        /*Checks if it was the shortest way to a dest*/
-        if(strcmp(node_info->routing_table[i][neigh]->field,
-                  node_info->short_way[i]->field)==0)
-        {
-            /*Cleans entrance*/
-            sprintf(node_info->routing_table[i][neigh]->field,"-");
-            node_info->routing_table[i][neigh]->n_fields=-1;
+        printf("erro no update_tables_after remove: removed %d não está nos neigh\n",removed);
+    }
 
-            /*Updates short_way table*/
-            for(int j=0;j<NODES; j++)
+    if(neigh != -1)
+    {
+        /*Remove from routes table*/
+        for(i=0; i<NODES; i++)
+        {
+        if( (node_info->routing_table[i][neigh]->n_fields) !=-1)
+        {
+            /*Checks if it was the shortest way to a dest*/
+            if(strcmp(node_info->routing_table[i][neigh]->field,
+                    node_info->short_way[i]->field)==0)
             {
-                if(max < node_info->routing_table[i][j]->n_fields)
+                /*Cleans entrance*/
+                sprintf(node_info->routing_table[i][neigh]->field,"-");
+                node_info->routing_table[i][neigh]->n_fields=-1;
+
+                /*Updates short_way table*/
+                for(int j=0;j<NODES; j++)
                 {
-                    max=node_info->routing_table[i][j]->n_fields;
-                    new_path=j;
+                    if(max < node_info->routing_table[i][j]->n_fields)
+                    {
+                        max=node_info->routing_table[i][j]->n_fields;
+                        new_path=j;
+                    }
+                }
+
+                /*Case: there is no path to dest*/
+                if(max == -1)
+                {
+                    node_info->short_way[i]->n_fields=-1;
+                    sprintf(node_info->short_way[i]->field,"-");
+                    node_info->expedition[i]=-1;
+
+                    /*Sends empty ROUTE*/
+                    send_empty_route(node_info,node_info->destinations[i]);                    
+
+                    /*Remove destination*/
+                    remove_dest(node_info,node_info->destinations[i]);
+                }
+                /*Case: there is a new path to dest*/
+                else
+                {
+                    node_info->short_way[i]->n_fields=max;
+                    strcpy(node_info->short_way[i]->field,node_info->routing_table[i][new_path]->field);
+                    node_info->expedition[i]= node_info->neighbours[new_path];
+
+                    /*Send update to all neighbours*/
+                    send_route_messages(node_info,node_info->destinations[i]);
                 }
             }
-
-            /*Case: there is no path to dest*/
-            if(max == -1)
-            {
-                node_info->short_way[i]->n_fields=-1;
-                sprintf(node_info->short_way[i]->field,"-");
-                node_info->expedition[i]=-1;
-
-                /*Remove destination*/
-                remove_dest(node_info,node_info->destinations[i]);
-
-                /*Sends empty ROUTE*/
-                send_empty_route(node_info,node_info->destinations[i]);
-
-            }
-            /*Case: there is a new path to dest*/
             else
             {
-                node_info->short_way[i]->n_fields=max;
-                strcpy(node_info->short_way[i]->field,node_info->routing_table[i][new_path]->field);
-                node_info->expedition[i]= node_info->neighbours[new_path];
+                /*Cleans entrance*/
+                sprintf(node_info->routing_table[i][neigh]->field,"-");
+                node_info->routing_table[i][neigh]->n_fields=-1;
 
-                /*Send update to all neighbours*/
-                send_route_messages(node_info,node_info->destinations[i]);
             }
         }
-        else
-        {
-            /*Cleans entrance*/
-            sprintf(node_info->routing_table[i][neigh]->field,"-");
-            node_info->routing_table[i][neigh]->n_fields=-1;
-
+            
         }
-      }
-        
     }
     return;
     
@@ -398,7 +404,13 @@ void process_route(node_information *node_info,int node, int dest, char*path)
     else if(valid_route==0)
     {
         printf("route is invalid\n");
-        process_empty_route(node_info,node,dest);
+        /*If a route is a route to this node, it's not invalid to include the node*/
+        if(dest != node_info->id)
+        {
+            printf("vai processar a rota inválida\n");
+            process_empty_route(node_info,node,dest);
+        } 
+
     }
     return;
 }
@@ -436,12 +448,11 @@ void process_empty_route(node_information *node_info, int node, int dest)
                 sprintf(node_info->short_way[dest_place]->field,"-");
                 node_info->expedition[dest_place]=-1;
 
-                /*Remove destination*/
-                remove_dest(node_info,node_info->destinations[dest_place]);
-
                 /*Sends empty ROUTE*/
                 send_empty_route(node_info,node_info->destinations[dest_place]);
 
+                /*Remove destination*/
+                remove_dest(node_info,node_info->destinations[dest_place]);
             }
             /*Case: there is a new path to dest*/
             else

@@ -27,8 +27,9 @@ typedef struct NODE_INFO
     int pred_id; /*Predecessor ID*/
     int pred_fd;
 
+    int chord_id;
+
     int *fd;
-    int *chord_id;
     char **ip;
     int *port;
 
