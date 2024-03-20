@@ -93,10 +93,7 @@ void djoin(node_information * node_info,int id,int succ_id,char* succ_ip, int su
 {
     int fd;
 
-    /*Check arguments*/
-
     /*Update SUCC*/
-    node_info->id=id;
     node_info->succ_id=succ_id;
     strcpy(node_info->ip[succ_id],succ_ip);
     node_info->port[succ_id]=succ_port;
@@ -174,7 +171,7 @@ void join(node_information *node_info,int ring, int id)
     }
 
     /*Case: the ring is full*/
-    if(num_nodes==100)
+    if(num_nodes==NODES)
     {
         printf("The selected ring is full\n");
     }
@@ -195,10 +192,7 @@ void join(node_information *node_info,int ring, int id)
         if(ring_ids[id]==1)
         {
             i=0;
-            while(ring_ids[i]==1)
-            {
-                i++;
-            }
+            while(ring_ids[i]==1){ i++; }
 
             /*Update tables*/
             node_info->id=i;
@@ -206,8 +200,6 @@ void join(node_information *node_info,int ring, int id)
             node_info->expedition[0]=i;
 
             sprintf(node_info->short_way[0]->field,"%d",i);
-
-            printf("id guardado: %d\n", node_info->id);
 
             printf("join: the select ID already exists. Assigned ID: %02d\n",i);
         }
@@ -220,7 +212,7 @@ void join(node_information *node_info,int ring, int id)
 
         /*Direct Join*/
 
-        djoin(node_info,id,selected_id,selected_ip,selected_port);
+        djoin(node_info,node_info->id,selected_id,selected_ip,selected_port);
         printf("djoin done\n");
 
         /*Send REG to the node server*/
@@ -318,58 +310,96 @@ void leave(node_information *node_info)
 void chord (node_information*node_info)
 {
     char nodes_buffer[NODES_BUFFER];
-    char buffer[BUFFER], *ips[16];
-    int server_response, ids[NODES],ports[NODES],num_nodes=0,selected_node, chord_fd, neigh_place;
+    char buffer[BUFFER], ips[NODES][20], *nodeslist[NODES];
+    int server_response, ids[NODES],ports[NODES],num_nodes=0,selected_node, chord_fd, neigh_place, lines=0, valid=0,i;
 
     if(node_info->chord_id == -1)
     {
-    /*Connect node server*/
-    sprintf(buffer,"NODES %03d", node_info->ring);
-    server_response=message_serverUDP(node_info->udp_server_info,buffer,strlen(buffer),nodes_buffer,NODES_BUFFER);
+        /*Connect node server*/
+        sprintf(buffer,"NODES %03d", node_info->ring);
+        server_response=message_serverUDP(node_info->udp_server_info,buffer,strlen(buffer),nodes_buffer,NODES_BUFFER);
 
-    if (server_response==0)
-    {
-        printf("Could not connect to node server");
-        return;
-    }
-
-
-    /*Parse nodes data*/
-    const char *current_position = strchr(nodes_buffer, '\n') + 1; /*Move to the next line*/
-    while (num_nodes<NODES) 
-    {
-        if(ids[num_nodes] != node_info->id && ids[num_nodes]!=node_info->pred_id && ids[num_nodes] != node_info->succ_id)
+        if (server_response==0)
         {
-            sscanf(current_position, "%d %15s %d", &ids[num_nodes], ips[num_nodes], &ports[num_nodes]);
-            num_nodes++;            
+            printf("Could not connect to node server");
+            return;
         }
 
-        /*Move to the next line*/
-        current_position = strchr(current_position, '\n');
-        if (current_position == NULL)
-            break;
-        current_position++; /*Move past the newline character*/ 
-    }
+        /*Parsing*/
+        strtok(nodes_buffer,"\n");
+        nodeslist[lines]=strtok(NULL,"\n");
 
-    /*Select a random node to create a chord with*/
-    selected_node=(rand()%(num_nodes-1))+1;
+        while (nodeslist[lines]!=NULL && num_nodes<NODES)
+        {
+            printf("Nodeslist[lines]%s\n",nodeslist[lines]);
 
-    /*Create TCP client*/
-    chord_fd=tcp_client(ips[selected_node],ports[selected_node]);
+            sscanf(nodeslist[lines], "%d %s %d\n", &ids[num_nodes], ips[num_nodes], &ports[num_nodes]);
 
-    neigh_place=add_neighbour(node_info,ids[selected_node]);
-    node_info->chord_id=ids[selected_node];
+            printf("O que foi guardado: %d %s %d\n",ids[num_nodes],ips[num_nodes],ports[num_nodes]);
+            
+            if (!(ids[num_nodes] == node_info->id || ids[num_nodes] == node_info->pred_id || ids[num_nodes] == node_info->succ_id))
+            {
+                // Condition met, so increment num_nodes
+                num_nodes++; 
+            }
 
-    FD_SET(chord_fd,&(node_info->readfds));
-    if(chord_fd>node_info->maxfd)
-    {
-        node_info->maxfd=chord_fd;
-    }
+        lines++;
+        nodeslist[lines]=strtok(NULL,"\n");  
+        }
+        printf("Numero de linhas lido: %d\n",lines);
+        printf("Numero de nos: %d\n",num_nodes);
 
-    node_info->fd[neigh_place]=chord_fd;
+        /*Can only create a chord if there are at least 4 nodes in the ring*/
+        if(lines>3)
+        {
+            while(valid != 1 || num_nodes == 0)
+            {
+                /*Select a random node to create a chord with*/
+                selected_node=(rand()%(num_nodes));
 
-    /*Sends chord message*/
-    CHORD(chord_fd,node_info);
+                i=find(selected_node,node_info->neighbours);
+                if(i==-1)
+                {
+                    valid = 1;
+                }
+                else if(node_info->fd[i]==-1)
+                {
+                    valid = 1;
+                }
+                else
+                {
+                    --num_nodes;
+                }
+            }
+
+            /*If it is a valid node to connect to*/
+            if(valid==1)
+            {
+                /*Create TCP client*/
+                chord_fd=tcp_client(ips[selected_node],ports[selected_node]);
+
+                neigh_place=add_neighbour(node_info,ids[selected_node]);
+                node_info->chord_id=ids[selected_node];
+
+                FD_SET(chord_fd,&(node_info->readfds));
+                if(chord_fd>node_info->maxfd)
+                {
+                    node_info->maxfd=chord_fd;
+                }
+
+                node_info->fd[neigh_place]=chord_fd;
+
+                /*Sends chord message*/
+                CHORD(chord_fd,node_info);
+
+                /*Sends tables*/
+                send_route_new_connect(chord_fd,node_info);
+            }
+        }
+        else
+        {
+            printf("There are not enough nodes on the ring to create a chord\n");
+        }
     }
     else
     {
@@ -380,11 +410,28 @@ void chord (node_information*node_info)
 
 void receive_chord(node_information* node_info, int node, int fd)
 {
-    int neigh_place;
+    int neigh_place,i;
 
-    /*Add chord to neighbours*/
-    neigh_place=add_neighbour(node_info,node);
-    node_info->fd[neigh_place]=fd;
+    i=find(node,node_info->neighbours);
+    if(i==-1)
+    {
+        /*Add chord to neighbours*/
+        neigh_place=add_neighbour(node_info,node);
+        node_info->fd[neigh_place]=fd;
+    }
+
+    /*Only accepts connection if it isn't already a chord*/
+    if(node_info->fd[neigh_place]==-1)
+    {
+        FD_SET(node_info->fd[neigh_place],&(node_info->readfds));
+        if(node_info->maxfd < node_info->fd[neigh_place])
+        {
+            node_info->maxfd = node_info->fd[neigh_place];
+        }
+
+        /*Send routes to the new connection*/
+        send_route_new_connect(node_info->fd[neigh_place],node_info);
+    }
 
     return;
 }
