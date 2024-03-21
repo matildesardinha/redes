@@ -381,15 +381,15 @@ void process_route(node_information *node_info,int node, int dest, char*path)
         sprintf(final_path, "%02d-%s", node_info->id, path);
         i++; /*Increments length of path by one*/
 
-        /*Updates route table*/
-        strcpy(node_info->routing_table[dest_place][neigh_place]->field,final_path);
-        node_info->routing_table[dest_place][neigh_place]->n_fields=i;
-
         printf ("Final path to be saved: %s | length: %d\nSaved in %d %d\n",final_path,i,dest_place,neigh_place);
 
-        /*Updates short ways table and expedition table*/
+        /*Updates short ways table and expedition table if:
+            - this path is shorter
+            - there was no path to dest
+            - shortest path was through this neighbour*/
         if(node_info->short_way[dest_place]->n_fields > i 
-            || node_info->short_way[dest_place]->n_fields == -1)
+            || node_info->short_way[dest_place]->n_fields == -1
+            || !strcmp(node_info->short_way[dest_place]->field,node_info->routing_table[dest_place][neigh_place]->field))
         {
             printf("Updates shortest way table\n");
             node_info->short_way[dest_place]->n_fields=i;
@@ -400,6 +400,9 @@ void process_route(node_information *node_info,int node, int dest, char*path)
             send_route_messages(node_info,dest);
         }
 
+        /*Updates route table*/
+        strcpy(node_info->routing_table[dest_place][neigh_place]->field,final_path);
+        node_info->routing_table[dest_place][neigh_place]->n_fields=i;
     }
     else if(valid_route==0)
     {

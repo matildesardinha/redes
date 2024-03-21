@@ -411,18 +411,23 @@ void chord (node_information*node_info)
 
 void receive_chord(node_information* node_info, int node, int fd)
 {
-    int neigh_place,i;
+    int neigh_place,valid=0;
 
-    i=find(node,node_info->neighbours);
-    if(i==-1)
+    neigh_place=find(node,node_info->neighbours);
+    if(neigh_place==-1)
     {
         /*Add chord to neighbours*/
         neigh_place=add_neighbour(node_info,node);
         node_info->fd[neigh_place]=fd;
+        valid=1;
+    }
+    else if(node_info->fd[neigh_place] == -1)
+    {
+        valid=1;
     }
 
     /*Only accepts connection if it isn't already a chord*/
-    if(node_info->fd[neigh_place]==-1)
+    if(valid==1)
     {
         FD_SET(node_info->fd[neigh_place],&(node_info->readfds));
         if(node_info->maxfd < node_info->fd[neigh_place])
