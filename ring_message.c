@@ -292,6 +292,12 @@ void process_new_connection(node_information*node_info, char*message,int fd)
     }
     else if(strcmp(command,"PRED")==0)
     {
+        /*Checks if there is a chord with the new predecessor*/
+        if(node_info->chord_id==atoi(arguments[0]))
+        {
+            remove_chord(node_info);
+        }
+        
         /*Removes old predecessor from tables*/
         update_tables_after_remove(node_info->pred_id,node_info);
 

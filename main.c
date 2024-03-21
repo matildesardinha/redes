@@ -28,7 +28,7 @@ int main (int argc, char **argv)
 
     char buffer [BUFFER_SIZE];
     memset(buffer,0,BUFFER_SIZE);
-
+    printf("boas\n");
     
     /*Check incorrect argument number*/
     if(argc!=3 && argc!=5)
@@ -46,7 +46,8 @@ int main (int argc, char **argv)
 
     if(argc==5)
     {
-       if(check_ipv4(argv[3]) || check_port(atoi(argv[4])))
+
+       if(check_ipv4(argv[3])==0 || check_port(atoi(argv[4]))==0)
        {
             exit(EXIT_FAILURE);
        }
@@ -59,6 +60,7 @@ int main (int argc, char **argv)
     }
     else
     {
+        printf("aaaaaa\n");
         node_info=set_up_node(atoi(argv[2]),argv[1],argv[3],atoi(argv[4]));
     }
 

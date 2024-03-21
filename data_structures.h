@@ -12,7 +12,11 @@ typedef struct  PATHSET
 
 } pathset;
 
-
+/*node_information
+*
+*   Structure with all the node information
+*
+*/
 typedef struct NODE_INFO
 {
     int id, ring,maxfd, tcp_port;
@@ -52,8 +56,25 @@ typedef struct NODE_INFO
 
 }node_information;
 
-
+/* 
+*   set_up_node()
+*   Description: allocates memory and initializes every variable to inicial values
+*                  
+*   Parameters: tcp_port and tcp_ip of the node
+*               reg_ip and reg_UPP : ip and port of the node server
+*   
+*   Returns: pointer to a node_information structure
+*/ 
 node_information* set_up_node(int tcp_port,char*tcp_ip,char*reg_ip,int reg_UDP);
 
+/* 
+*   free_node()
+*   Description: frees all the memmory that was allocated
+*                  
+*   Parameters: *node_info: pointer to all the node information
+*   
+*   Returns: void
+*/ 
+void free_node(node_information* node_info);
 
 #endif

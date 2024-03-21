@@ -82,6 +82,10 @@ void process_command(node_information* node_info, char *buffer)
     {
         remove_chord(node_info);
     }
+    else if((strcmp(command,"exit")==0 || strcmp(command,"x")==0) && num_args==0)
+    {
+        exit_f(node_info);
+    }
     else
     {
         printf("Invalid command\n");
@@ -211,13 +215,10 @@ void join(node_information *node_info,int ring, int id)
         printf("Selected node: %d %s %d\n",selected_id,selected_ip,selected_port);
 
         /*Direct Join*/
-
         djoin(node_info,node_info->id,selected_id,selected_ip,selected_port);
-        printf("djoin done\n");
 
         /*Send REG to the node server*/
-        
-        REG (node_info);       
+        REG (node_info);  /*Isto só pode ser feito depois de se establecer adjacência com o predecessor*/     
         printf ("REG done\n"); 
     }
 
@@ -497,8 +498,14 @@ void node_left(node_information*node_info,int id,int ring)
         else
         {
             node_info->succ_fd=-1; 
-        }        
+        } 
 
+        /*Check if the node has a chord with 2nd succ*/
+        if (node_info->chord_id == node_info->s_succ_id)
+        {
+            remove_chord(node_info);
+        }
+               
         /*Creates TCP client with 2nd succ*/
         int fd;
         fd= tcp_client(node_info->ip[node_info->s_succ_id],node_info->port[node_info->s_succ_id]);
@@ -595,5 +602,14 @@ void clear_node(node_information*node_info)
         }
     }
     
+    return;
+}
+
+void exit_f (node_information*node_info)
+{
+    /*frees node info*/
+    free_node(node_info);
+    /*exit*/
+    exit(0);
     return;
 }

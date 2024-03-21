@@ -105,3 +105,32 @@ node_information* set_up_node(int tcp_port,char*tcp_ip,char*reg_ip,int reg_UDP)
     return node_info;
 }
 
+void free_node(node_information* node_info)
+{
+    for (int i = 0; i < CONNECTIONS_NUM ; i++)
+    {
+        free(node_info->ip[i]);
+    }
+
+    free(node_info->fd);
+    free(node_info->port);
+    free(node_info->ip);
+    free(node_info->destinations);
+    free(node_info->neighbours);
+
+    for (int i = 0; i <TABLE_SIZE; i++)
+    {
+        for (int j = 0; j < TABLE_SIZE; j++)
+        {
+           free(node_info->routing_table[i][j]);
+        }
+        free(node_info->routing_table[i]);
+        free(node_info->short_way[i]);  
+    }
+
+    free(node_info->routing_table);
+    free(node_info->short_way);
+    free(node_info->expedition);
+    
+    return;
+}
